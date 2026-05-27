@@ -1,0 +1,13 @@
+# Instrument control
+pyvisa
+pymeasure
+
+# Data handling & plotting
+pandas
+numpy
+matplotlib
+
+# Notebooks
+jupyter
+
+# Note: tkinter is part of the Python standard library (no pip install needed).

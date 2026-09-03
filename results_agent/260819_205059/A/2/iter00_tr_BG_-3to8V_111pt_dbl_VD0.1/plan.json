@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "2",
+    "x": 0.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w12_r2c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T20:54:08",
+  "elapsed_s": 71.9929871559143,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -3.0,
+      "stop": 8.0,
+      "points": 111,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "10 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth/SS/on-off 비뿐이므로 baseline 의 19 V 상단은 불필요하다 — site1 에서 turn-on 이 1.98 V, 4.13 decade 확보가 -1~5 V 창 안에서 이미 끝났고 그 위는 포화 구간 반복 스트레스일 뿐이다. 다만 이 소자는 BG+TG 직렬로 이중 turn-on(어깨) 가능성이 있어 상단을 8 V 까지, off-floor 확보를 위해 하단을 -3 V 까지만 확장한다. 스텝은 실측 SS 0.415 V/dec 의 1/4 인 0.1 V 로 잡아 SS 과대추정을 막는다(111pt, double 이라 실측 222pt)."
+  }
+}

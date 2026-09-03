@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "3",
+    "x": 1250.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w21_r2c2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T16:15:59",
+  "elapsed_s": 39.12283682823181,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -3.0,
+      "stop": 19.0,
+      "points": 148,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 3.5e-05,
+      "S": 0.00035
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth·SS·on/off 비뿐이므로 turn-on(Vth≈1.55 V) 아래로 몇 decade만 확보하면 충분하다. -3 V면 SS 0.27 V/dec 기준 turn-on 아래 16 decade 이상이라 off 바닥(1e-13 A)을 잡기에 남고, 위쪽은 자료가 on 전류를 명시한 Vg=20 V 근처(19 V, 경계 내)까지 두어 on/off 비를 확보한다. 스텝은 22 V/147구간 ≈ 0.150 V 로 SS/1.5=0.18 V 보다 촘촘해 SS가 부풀지 않고, 히스테리시스는 목적이 아니므로 double 대신 single 로 누적 스트레스를 절반으로 줄인다."
+  }
+}

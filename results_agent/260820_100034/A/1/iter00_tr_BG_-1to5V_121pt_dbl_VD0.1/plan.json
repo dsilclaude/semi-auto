@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w9_d1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-20T10:01:50",
+  "elapsed_s": 17.526498794555664,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -1.0,
+      "stop": 5.0,
+      "points": 121,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "100 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "첫 소자라 turn-on 위치를 모르므로 경계(±20 V)를 다 걸지 않고 기준안의 좁은 창(-1→5 V)을 그대로 쓴다. 이중 turn-on(BG만 / BG+TG 직렬) 가능성이 있어 어깨를 놓치지 않으려면 스텝이 성기면 안 되는데, 121pt는 0.05 V/step 으로 SS 추정과 어깨 분해에 충분하고 double 이라 실측 242점 수준의 스트레스로 억제된다. Vth·SS·이동도·on/off·히스테리시스 모두 이 창에서 turn-on 이 잡히면 산출 가능하고, 안 잡히면 다음 소자에서 창을 넓힌다(같은 소자 재측정은 트래핑으로 Vth 가 밀림)."
+  }
+}

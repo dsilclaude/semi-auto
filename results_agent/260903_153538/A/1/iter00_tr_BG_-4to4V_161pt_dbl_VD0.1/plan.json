@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w15_r1c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-09-03T15:36:41",
+  "elapsed_s": 27.526777267456055,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -4.0,
+      "stop": 4.0,
+      "points": 161,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "100 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "첫 소자라 turn-on 위치를 모르므로 0 V 대칭 창을 유지하되, TG+BG 직렬 구조로 두 구간이 서로 다른 Vg 에서 켜져 이중 어깨가 예상되므로 기준안(±2.84 V)보다 약간만 넓혀 ±4 V 로 잡았다. 스텝은 50 mV 로 기준안과 동일하게 유지해(161pt) SS 가 성긴 스텝으로 부풀려지지 않게 했고, 히스테리시스를 위한 왕복이므로 실측 322점 수준에서 스트레스도 과하지 않다. Vd=0.1 V 선형영역 유지로 Vth/SS/이동도 추출 조건을 맞췄다."
+  }
+}

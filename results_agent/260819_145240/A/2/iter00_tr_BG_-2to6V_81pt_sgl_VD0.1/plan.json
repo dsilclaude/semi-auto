@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "2",
+    "x": 0.0,
+    "y": -150.0,
+    "area": "A",
+    "note": "w9_d2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T14:54:13",
+  "elapsed_s": 28.952190399169922,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -2.0,
+      "stop": 6.0,
+      "points": 81,
+      "direction": "single",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 1.5e-05,
+      "S": 0.00015
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth와 SS 뿐이고 스윕 자체가 가역적 전하 트래핑으로 소자 상태를 바꾸고 있으므로, turn-on(기대 Vth 1.55 V) 위아래로 필요한 최소 구간만 잡았다. off floor 1e-13 A에서 on 영역까지 SS 0.27 V/dec 기준 7 decade 전이가 약 2 V 안에서 끝나므로 -2 V에서 +6 V면 off floor 수 decade 확보와 on 포화 진입 확인에 충분하고, 19 V까지 올려도 Vth/SS 정보는 늘지 않고 트래핑 스트레스만 누적된다. 스텝은 SS/1.5=0.18 V보다 촘촘한 0.1 V(81pt)로 두어 SS가 부풀려지지 않게 했고, 히스테리시스는 이번 목적이 아니므로 왕복을 편도로 바꿔 스트레스 시간을 절반으로 줄였다."
+  }
+}

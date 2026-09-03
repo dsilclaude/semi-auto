@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "4",
+    "x": 1250.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w21_r1c2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T16:17:07",
+  "elapsed_s": 39.710262060165405,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -3.0,
+      "stop": 19.0,
+      "points": 149,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 3.5e-05,
+      "S": 0.00035
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth·SS·on/off 비뿐이라 히스테리시스가 필요 없으므로 double 을 single 로 바꿔 누적 스트레스를 절반으로 줄인다. off 바닥(1e-13 A)에서 Vth(1.55 V)까지 7 decade 를 SS 0.27 V/dec 로 잡으면 약 1.9 V 구간이므로 -3 V 부터면 충분하고, 자료 특성화 하한 -20 V 까지 내려갈 근거가 없다. 상단은 스펙의 Ion 정의점(Vg=20, Vd=0.1)에 맞춰 19 V 를 유지하고, 점 수를 149 로 올려 스텝 0.148 V(≈SS/1.8)를 확보해 SS 가 부풀려지지 않게 한다."
+  }
+}

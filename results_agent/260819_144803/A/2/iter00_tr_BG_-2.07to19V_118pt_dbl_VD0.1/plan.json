@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "2",
+    "x": 0.0,
+    "y": -150.0,
+    "area": "A",
+    "note": "w9_d2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T14:49:27",
+  "elapsed_s": 36.029045820236206,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -2.07,
+      "stop": 19.0,
+      "points": 118,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 1.5e-05,
+      "S": 0.00015
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "스펙 기반: Vth=1.55 V, SS=0.27 V/dec → 스텝 0.18 V (= SS/1.5). 범위 -2.07~19 V 는 경계 [-18.905, 19] 안. stack=SD_w9"
+  }
+}

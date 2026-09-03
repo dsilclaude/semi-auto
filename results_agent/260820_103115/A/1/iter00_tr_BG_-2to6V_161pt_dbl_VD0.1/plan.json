@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w24_r1c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-20T10:32:19",
+  "elapsed_s": 23.104115962982178,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -2.0,
+      "stop": 6.0,
+      "points": 161,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "100 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "첫 소자라 turn-on 위치를 모르므로 경계(±20 V)를 다 걸지 않고 기준안 수준의 좁은 창을 유지한다. 다만 목적에 히스테리시스와 off 레벨(on/off 비)이 포함되어 있어 정/역 차이를 보려면 turn-on 아래 off 구간이 조금 더 필요하고, 이중 turn-on(어깨) 가능성 때문에 위쪽도 5→6 V 로만 소폭 확보했다. 스텝은 기준안과 동일한 50 mV 를 유지해(9 V/180) SS 가 부풀려지지 않게 했다. turn-on 이 이 창에 안 잡히면 같은 소자를 재측정하지 않고 다음 소자에서 창을 넓힌다."
+  }
+}

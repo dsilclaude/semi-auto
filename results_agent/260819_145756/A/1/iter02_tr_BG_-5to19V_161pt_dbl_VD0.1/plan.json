@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w9_d1"
+  },
+  "iteration": 2,
+  "timestamp": "2026-08-19T14:59:35",
+  "elapsed_s": 17.1875958442688,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -5.0,
+      "stop": 19.0,
+      "points": 161,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 1.5e-05,
+      "S": 0.00015
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "턴1에서 목적 지표는 모두 확보됐다(SS 0.482 V/dec, decades 6.86, id_on 1.13 µA @19 V, Ig_max 4.4e-12 A로 컴플라이언스 3자리 아래·Ig/Id 3.9e-6 이라 누설 없음). 문제는 재현성이다: 턴0 대비 turn-on 이 CSV 상 Vg≈4.5 V→8.5 V 로, vth_cc 7.02→10.03 V, vth_lin 12.86→14.14 V 로 크게 양의 방향으로 밀렸고 왕복에서 hysteresis -1.62 V 가 나왔다. 즉 게이트 바이어스 스트레스에 의한 전자 트래핑이 진행 중이며, 지금의 Vth 값 하나를 대표값으로 보고하면 위험하다. 턴0에서 보이던 7.2~7.9 V 어깨는 턴1 정방향에서는 사라지고 대신 8.0~8.5 V 부근 노이즈 플로어로만 남아, 그 어깨는 트랩 충전에 따른 과도 현상이었을 가능성이 크다. 동일 조건 왕복 1회를 반복해 드리프트가 포화하는지(재현 가능한 Vth 인지) 확인한 뒤 종료한다."
+  }
+}

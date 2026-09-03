@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w15_r1c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T17:06:24",
+  "elapsed_s": 18.10192584991455,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -5.0,
+      "stop": 20.0,
+      "points": 168,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 2.5e-05,
+      "S": 0.00025
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth·SS·on/off 비이므로 turn-on 아래로 off floor(1e-13 A)까지 확보하면 충분하다. Vth 1.55 V, SS 0.27 V/dec 이면 7 decade 전이가 약 1.9 V 이므로 -5 V 시작이면 off 바닥을 여유 있게 잡는다. 다만 BG+TG 직렬 구조로 두 번째 turn-on(어깨)이 더 높은 Vg 에서 나올 수 있어 상단은 자료 특성화 상한 20 V 까지 확보해 on 전류 포화를 본다. 25 V 폭에서 SS/1.5=0.18 V 스텝을 지키려면 168 pt 가 필요하고(step 0.150 V), double 이라 실측 336 pt 로 스트레스도 감당 가능하다."
+  }
+}

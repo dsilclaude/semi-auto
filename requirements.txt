@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Instrument control
 pyvisa
 pymeasure
@@ -6,8 +8,13 @@ pymeasure
 pandas
 numpy
 matplotlib
+openpyxl   # 좌표 .xlsx 읽기용 (pandas read_excel)
 
 # Notebooks
 jupyter
+
+# Agent (measauto) — 측정 중 다음 조건을 정하는 LLM 호출용.
+# 설치만으로는 안 돌아간다. ANTHROPIC_API_KEY 가 따로 필요하다.
+anthropic
 
 # Note: tkinter is part of the Python standard library (no pip install needed).

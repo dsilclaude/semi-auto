@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "4",
+    "x": 1250.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w15_r1c2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-09-03T15:40:59",
+  "elapsed_s": 45.026581048965454,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -2.0,
+      "stop": 15.0,
+      "points": 171,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "100 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "앞 세 소자에서 turn-on 은 1.86~3.12 V, SS 0.30~0.34 V/dec 로 일관되고 -2 V 에서 이미 off floor 에 붙어 있었으므로 아래쪽은 -2 V 유지로 충분하다(on/off 비·히스테리시스 기준선 확보). 반면 세 소자 모두 gm_peak_at_edge=true 이고 이동도가 lower bound 로만 나왔으므로, 이동도를 제대로 얻으려면 on 영역을 창 끝(10 V) 위로 더 확보해야 한다 → 상한을 15 V 로 확장(|VBG-VD|=14.9 V ≤ 20 V 안전). 실측 SS 0.30 V/dec 대비 스텝 0.1 V/pt(171pt)로 잡아 문턱하 구간 분해능을 확보했고, double 스윕이라 실측 342 점으로 스트레스도 이전 수준과 비슷하다."
+  }
+}

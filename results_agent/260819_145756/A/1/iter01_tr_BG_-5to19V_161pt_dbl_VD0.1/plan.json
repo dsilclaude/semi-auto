@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w9_d1"
+  },
+  "iteration": 1,
+  "timestamp": "2026-08-19T14:59:04",
+  "elapsed_s": 17.418208360671997,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -5.0,
+      "stop": 19.0,
+      "points": 161,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 1.5e-05,
+      "S": 0.00015
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "턴0에서 n형 정상 동작 확인: SS 0.79 V/dec, decades 6.05, id_on 1.19 µA @19 V, Ig_max 3.9e-12 A로 컴플라이언스 대비 3자리 아래이며 Ig/Id 3e-6 수준이라 누설 문제는 없다. 다만 vth_lin(12.86 V)과 vth_cc(7.02 V)가 5.8 V나 벌어지고, 원본 CSV에서 Vg 7.2~7.9 V 구간 Id가 3.2~3.3 nA로 거의 평탄해지는 어깨(hump, 이중 turn-on 징후)가 보인다 — 지표만으로는 이 어깨가 계면 트랩 기인 hump인지 측정 노이즈인지 갈리지 않는다. 왕복 스윕으로 히스테리시스(트랩 충전)를 확인하면 어깨의 정체와 Vth의 신뢰도를 함께 판정할 수 있으므로, 같은 범위를 조금 넓혀(-5 V) double sweep 1회를 제안한다."
+  }
+}

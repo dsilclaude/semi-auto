@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w12_r1c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T19:57:42",
+  "elapsed_s": 525.1455166339874,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -19.0,
+      "stop": 19.0,
+      "points": 1901,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "10 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "첫 소자라 turn-on 위치를 모른다 — 목적(Vth, SS, on/off 비)은 off 바닥과 on 포화를 모두 담아야 하므로 경계(±20 V) 안에서 자료 특성화 범위 전폭을 훑는 기준안을 유지한다. 또한 BG+TG 이중 결합 구조상 어깨(이중 turn-on)가 나타날 수 있어 두 turn-on 을 모두 잡으려면 넓은 스윕이 필요하다. 점 수는 기준안 수준(스텝 20 mV)을 유지해 SS 가 스텝으로 부풀려지지 않게 하고, double 이므로 이보다 더 늘리지는 않았다."
+  }
+}

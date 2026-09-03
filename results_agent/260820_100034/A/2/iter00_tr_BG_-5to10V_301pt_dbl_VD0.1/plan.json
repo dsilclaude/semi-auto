@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "2",
+    "x": 0.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w9_d2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-20T10:04:42",
+  "elapsed_s": 118.55420589447021,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -5.0,
+      "stop": 10.0,
+      "points": 301,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "10 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth·SS·이동도·on/off·히스테리시스 전부이므로, 앞 소자 실측 turn-on(Vth_cc=1.58 V, SS=0.29 V/dec, -1~5 V 창 안에서 4.5 decade 확보)을 기준으로 아래는 off 바닥과 역방향 이력을 보기 위해 -5 V, 위는 이동도·포화와 BG+TG 직렬 구조에서 나올 수 있는 두 번째 어깨를 담기 위해 +10 V 까지만 잡았다. baseline 의 19 V 는 앞 소자에서 5 V 만에 이미 4.5 decade 가 나온 것에 비해 정보 없는 과잉 스트레스라 축소했다. 스텝은 앞 소자 실측 SS 0.29 V/dec 의 1/1.5(≈0.19 V)보다 훨씬 촘촘한 0.05 V 를 유지하도록 301 pt(왕복 602 pt)로 설정했다."
+  }
+}

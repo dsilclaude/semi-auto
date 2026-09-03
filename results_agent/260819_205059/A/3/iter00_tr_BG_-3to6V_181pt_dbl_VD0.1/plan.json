@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "3",
+    "x": 1250.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w12_r2c2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T20:56:18",
+  "elapsed_s": 83.06120133399963,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -3.0,
+      "stop": 6.0,
+      "points": 181,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "10 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "앞 두 소자에서 turn-on 이 1.66~1.98 V, SS 0.42~0.47 V/dec 로 일관되게 나왔고 4~4.9 decade 를 확보했으므로, 기준안의 19 V 까지 올라갈 이유가 없다(이미 포화된 구간을 반복하면 스트레스만 쌓인다). off 바닥 확보와 이중 turn-on 어깨 확인을 위해 -3→6 V 면 충분하다. 스텝은 실측 SS 0.415 V/dec 의 1/1.5(≈0.28 V)보다 훨씬 조밀한 0.05 V(181pt)로 잡아 SS 가 부풀려지지 않게 했다."
+  }
+}

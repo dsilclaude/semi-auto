@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w12_r1c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T20:52:13",
+  "elapsed_s": 18.492713451385498,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -1.0,
+      "stop": 5.0,
+      "points": 121,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "100 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "첫 소자라 turn-on 위치에 대한 실측 근거가 전혀 없다. 목적(Vth, SS, on/off 비)은 turn-on 아래 몇 decade 와 그 위 약간만 있으면 충족되므로 경계(±20 V)를 다 쓸 이유가 없고, 미지 소자에 처음부터 큰 전압을 걸 이유도 없다. 따라서 기준안의 -1→5 V / 121 pt(스텝 0.05 V, double 이라 실측 242 pt)를 그대로 채택한다 — 스텝을 더 성기게 하면 SS 가 부풀려지므로 유지하고, turn-on 이 이 창에서 안 보이면 다음 소자에서 창을 넓힌다."
+  }
+}

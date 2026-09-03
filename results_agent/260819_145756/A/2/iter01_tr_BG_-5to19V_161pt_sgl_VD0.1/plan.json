@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "2",
+    "x": 0.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w9_d2"
+  },
+  "iteration": 1,
+  "timestamp": "2026-08-19T15:00:48",
+  "elapsed_s": 9.472458362579346,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -5.0,
+      "stop": 19.0,
+      "points": 161,
+      "direction": "single",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 1.5e-05,
+      "S": 0.00015
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "턴 0 은 n형 정상 동작 곡선(vth_cc=1.071 V, SS=0.466 V/dec, 5.88 decades, id_norm 7.76e-7 A, Ig_max 1.56e-12 A로 누설 무시 가능)을 이미 줬고 compliance hit 도 없다. 다만 off 영역이 -3~-0.6 V 밖에 없어 floor 가 5점 남짓이고 floor_slope 0.158 로 약간 기울어 있어 id_off/decades 추정이 불안정하다. 같은 area site1 이 -5→19 V 161pt 로 문제없이 완주했으므로 동일 창으로 한 번만 넓혀 off 베이스라인을 확보하고 Vth 재현성(카나리아)을 확인한다."
+  }
+}

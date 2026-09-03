@@ -1,0 +1,74 @@
+{
+  "_comment": [
+    "유전막 재료 물성표. 웨이퍼가 아니라 **재료**에 딸린 값이므로 한 곳에 모아",
+    "두고 모든 stack 이 참조한다. 스택 json 에는 어느 설계자료에나 있는 것",
+    "(재료 이름 + 두께)만 적으면 되고, 절연내압을 웨이퍼마다 확인할 필요가 없다.",
+    "",
+    "이 파일이 이 시스템에서 '검토 대상'이다. 한 번 검토받아 두면 이후 모든",
+    "웨이퍼에 적용된다 — 웨이퍼마다 공정 담당을 붙잡지 않아도 된다.",
+    "",
+    "e_breakdown_MV_per_cm : 문헌상 진성 절연파괴 필드. 결함 없는 이상적 막 기준.",
+    "e_design_MV_per_cm    : 실제 설계에 쓰는 값. 진성의 약 1/3 이다.",
+    "                        국소 결함 집중과 TDDB(시간 누적) 때문이며, 스윕 반복은",
+    "                        그 시간을 적립하는 것이라 '지난번에 괜찮았으니'가",
+    "                        성립하지 않는다.",
+    "eps_r                 : 비유전율. 설계자료가 값을 주면 그쪽이 우선한다",
+    "                        (공정마다 조성이 달라 자료값이 더 정확하다).",
+    "",
+    "[중요] 아래는 문헌 통상값이다. 증착 방식(열산화 vs PECVD vs ALD)과 조건에",
+    "따라 실제 값은 달라진다. 특히 PECVD 막은 열산화막보다 낮다. 공정 담당 확인이",
+    "가능해지면 그 값으로 갱신하고 provenance 를 채울 것. 그때까지는 design 값이",
+    "이미 진성의 1/3 이라 보수적이다."
+  ],
+
+  "materials": {
+    "SiO2": {
+      "eps_r": 3.9,
+      "e_breakdown_MV_per_cm": 10.0,
+      "e_design_MV_per_cm": 3.0,
+      "note": "열산화막 기준. PECVD 막은 더 낮다(6~8 MV/cm 대)."
+    },
+    "SiNx": {
+      "eps_r": 7.0,
+      "e_breakdown_MV_per_cm": 10.0,
+      "e_design_MV_per_cm": 3.0,
+      "note": "PECVD SiNx. 조성(Si/N 비)에 따라 ε 가 6~7.5 로 흔들린다."
+    },
+    "SiON": {
+      "eps_r": 5.5,
+      "e_breakdown_MV_per_cm": 9.0,
+      "e_design_MV_per_cm": 3.0,
+      "note": "조성에 따라 SiO2 와 SiNx 사이 어디든."
+    },
+    "Al2O3": {
+      "eps_r": 9.0,
+      "e_breakdown_MV_per_cm": 8.0,
+      "e_design_MV_per_cm": 2.5,
+      "note": "ALD 기준."
+    },
+    "HfO2": {
+      "eps_r": 25.0,
+      "e_breakdown_MV_per_cm": 5.0,
+      "e_design_MV_per_cm": 1.5,
+      "note": "high-k 는 진성 내압이 낮다. ε 가 커도 필드 한계는 더 빨리 온다."
+    },
+    "Ta2O5": {
+      "eps_r": 25.0,
+      "e_breakdown_MV_per_cm": 4.0,
+      "e_design_MV_per_cm": 1.3
+    }
+  },
+
+  "policy": {
+    "field_basis": "design",
+    "_field_basis_note": "design | breakdown. design 이 기본 — 진성 한계로 밀면 TDDB 로 수명이 급격히 짧아진다.",
+    "derate_note": "e_design ≈ e_breakdown / 3 은 설계 관행이다. 더 보수적으로 가려면 bounds_from_stack(derate=...) 를 쓴다."
+  },
+
+  "provenance": {
+    "source": "문헌 통상값 (재료별 note 참고)",
+    "approved_by": null,
+    "date": null,
+    "note": "공정 담당 확인 전. 확인되면 해당 재료의 e_design_MV_per_cm 을 실측값으로 갱신하고 approved_by 를 채울 것."
+  }
+}

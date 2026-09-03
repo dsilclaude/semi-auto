@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w9_d1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T14:58:22",
+  "elapsed_s": 9.04084300994873,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -3.0,
+      "stop": 19.0,
+      "points": 148,
+      "direction": "single",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 1.5e-05,
+      "S": 0.00015
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth·SS·on/off 비뿐이라 히스테리시스용 왕복은 불필요하므로 single 편도로 바꿔 누적 스트레스를 절반으로 줄인다. off floor(1e-13 A)를 확보하려면 Vth 1.55 V 아래로 SS 0.27 V/dec × 7 decade ≈ 1.9 V 이상 필요해 시작점을 -3 V 로 약간 내렸고, on 전류는 자료가 특성화한 +19 V 근처에서 읽는다. 스텝은 SS/1.5=0.18 V 보다 촘촘한 0.15 V 가 되도록 148 pt 로 잡아 SS 가 부풀려지지 않게 했다."
+  }
+}

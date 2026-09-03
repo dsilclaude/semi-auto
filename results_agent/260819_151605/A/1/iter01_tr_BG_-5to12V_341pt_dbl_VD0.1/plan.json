@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w24_d1"
+  },
+  "iteration": 1,
+  "timestamp": "2026-08-19T15:17:24",
+  "elapsed_s": 33.536370038986206,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -5.0,
+      "stop": 12.0,
+      "points": 341,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 4e-05,
+      "S": 0.0004
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "턴 0 은 깨끗한 n형 전달특성이다: turn-on 이 창 안(약 0.4 V 부터 상승), decades=6.52, id_off≈1.4e-12 A 로 floor 가 노이즈 수준, ig_max=1.5e-12 A 로 Ig/Id≈3e-7, compliance 미접촉 — 누설/사망/극성 이상은 없다. 다만 SS=0.451 V/dec 가 0.15 V 스텝에서 단 5점 회귀로 나온 값이라 신뢰도가 낮고, vth_lin(5.27)과 vth_cc(2.14) 의 큰 차이는 gm 이 고Vg 까지 계속 증가(gm_peak_vg=18.1, 곡선이 거의 선형 증가)하는 데서 온 것이라 선형외삽 Vth 가 과대평가되었을 가능성이 있다. 그래서 서브스레숄드 구간을 0.05 V 로 촘촘히, 그리고 왕복으로 한 번 더 떠서 SS 를 제대로 잡고 히스테리시스(전하 트래핑)까지 확인한다."
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w21_r1c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T16:13:39",
+  "elapsed_s": 17.416903495788574,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -5.0,
+      "stop": 20.0,
+      "points": 168,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 3.5e-05,
+      "S": 0.00035
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth·SS·on/off 비 뿐이므로 히스테리시스용 왕복은 불필요해 single 로 줄여 스트레스를 절반으로 낮췄다. 다만 off 바닥(~1e-13 A)을 확실히 깔아 on/off 비를 정량화하려면 Vth(1.55 V) 아래로 최소 5~6 decade(SS 0.27 V/dec → 약 1.6 V)에 여유를 더해야 하므로 시작점을 -5 V 로 내렸다(자료 특성화 -20 V 내). 스텝은 SS/1.5=0.18 V 보다 조밀한 0.15 V 를 유지하기 위해 25 V 범위에 168 pt 를 배분했고, 상단 20 V 는 i_on 스펙 조건과 일치시켜 유지했다."
+  }
+}

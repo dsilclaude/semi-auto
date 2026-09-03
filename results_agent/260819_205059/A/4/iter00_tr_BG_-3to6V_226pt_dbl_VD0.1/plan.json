@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "4",
+    "x": 1250.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w12_r1c2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T20:58:34",
+  "elapsed_s": 90.92129325866699,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -3.0,
+      "stop": 6.0,
+      "points": 226,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "10 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "앞 세 소자 실측 Vth 가 1.4~2.0 V, SS 0.34~0.47 V/dec, on/off 4~4.9 decade 로 일관되므로 baseline 의 19 V 상단은 이미 포화된 무정보 구간이라 스트레스만 쌓인다. Vth·SS·on/off 목적에는 off 바닥 확보용 -3 V ~ 포화 확인용 +6 V 면 충분하다(site 3 과 동일 창에서 4.7 decade 확보됨). 스텝은 최소 실측 SS 0.339 의 1/1.5(0.226 V)보다 훨씬 촘촘한 0.04 V(226 pt, double 452 pt)로 잡아 SS 과대평가를 막는다."
+  }
+}

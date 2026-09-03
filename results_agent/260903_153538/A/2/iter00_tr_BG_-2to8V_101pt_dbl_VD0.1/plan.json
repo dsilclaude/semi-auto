@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "2",
+    "x": 0.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w15_r2c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-09-03T15:37:51",
+  "elapsed_s": 38.775511026382446,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -2.0,
+      "stop": 8.0,
+      "points": 101,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "100 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "site1 에서 turn_on 3.124 V, SS 0.344 V/dec 로 전이는 잡혔지만 gm 꼭대기가 창 끝(4.0 V)에 걸려 이동도가 하한값으로만 나왔다. 이번엔 위쪽을 8 V 까지 확보해 gm 피크와 on 영역을 넘기고, 아래쪽은 -4~-2 V 가 off floor 로 정보가 없었으니 -2 V 에서 시작해 turn-on 아래 3 decade 남짓(SS 0.344 기준 약 1 V 아래까지) 만 유지한다. 스텝은 0.1 V(101pt, double 202 실측)로 SS/1.5=0.23 V 보다 촘촘히 잡아 SS 와 히스테리시스 분해능을 확보한다."
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "_comment": [
+    "안전 경계. sd_w15.json 은 자료 전사본이고 이 파일은 '무엇을 상한으로 삼을지'의",
+    "판단이라 분리한다.",
+    "",
+    "절연내압은 materials.json 에서 온다(재료 물성이라 웨이퍼마다 확인 불필요).",
+    "여기서는 그보다 더 좁히는 조건만 둔다:",
+    "  policy = characterized_envelope",
+    "  → 자료가 같은 웨이퍼를 실제로 측정해 보인 범위(±20 V)를 넘지 않는다.",
+    "",
+    "BG·TG 가 묶여 있어 게이트 전압이 두 막에 동시에 걸린다. 상한은 둘 중 낮은",
+    "쪽(BG, 30.9 V)이 정하고, 거기에 특성화 범위 20 V 가 더 좁힌다.",
+    "층 구조가 다른 W 스플릿들과 같으므로 전압 경계도 같다. W 만 다르므로",
+    "전류 상한만 W 비로 커진다."
+  ],
+  "gates": {
+    "BG": {
+      "e_max_MV_per_cm": null,
+      "v_user_max": null
+    },
+    "TG": {
+      "e_max_MV_per_cm": null,
+      "v_user_max": null
+    }
+  },
+  "policy": "characterized_envelope",
+  "characterized_gate": "BG",
+  "_comment_limits": [
+    "pair_v_max D-S : 자료가 측정한 Vd 최대 10 V.",
+    "i_compliance_A : 상한은 최악(output, Vd=10 V) 기준으로 1 mA 로 둔다.",
+    "                 실제 설정값은 seed 가 정한다 — 실측 Ion 이 있으면 그 10배,",
+    "                 없으면 이 상한을 그대로 쓴다(첫 소자는 이게 유일한 보호).",
+    "                 S = D 의 10배. 게이트는 낮을수록 보호적이라 1 nA.",
+    "max_points     : 소자 물성이 아니라 운용 정책. 누적 스트레스 시간 상한.",
+    "                 왕복이면 실측 점이 2배라는 것을 감안한 값이다."
+  ],
+  "limits": {
+    "pair_v_max": {
+      "D-S": 10.0
+    },
+    "i_compliance_A": {
+      "BG": 1e-09,
+      "TG": 1e-09,
+      "D": 0.001,
+      "S": 0.01
+    },
+    "ig_warn_A": 1e-10,
+    "ig_abort_A": 1e-09,
+    "max_points": 4000,
+    "operating_envelope_V": [
+      -20.0,
+      20.0
+    ]
+  },
+  "provenance": {
+    "source": "251022_SD_nTFT_Oxide TFT.pdf p.25 의 특성화 범위(Vg ±20 V, Vd ≤10 V) 및 실측 전류를 W 비로 환산",
+    "approved_by": null,
+    "date": "2026-08-19",
+    "note": "절연내압 미확인. 자료가 측정해 보인 범위를 상한으로 삼은 보수적 경계."
+  },
+  "_comment_envelope": [
+    "operating_envelope_V : 게이트에 걸 운용 상한. 물리 한계(절연파괴 계산)보다",
+    "  낮으면 이쪽이 이긴다. 좁히기만 하고 넓히지 않는다.",
+    "  근거: 설계자료가 같은 웨이퍼를 Vg ±20 V 에서 측정해 보였다. 그 범위",
+    "  안에서 소자가 살아 동작한다는 문서화된 실적이므로, 넘지 않는 것은",
+    "  추정이 아니라 보수적 선택이다.",
+    "  이건 소자 거동 추정치(Vth·SS 같은)가 아니라 운영 결정이라 여기 둔다 —",
+    "  자료의 expected 블록은 어떤 코드도 읽지 않는다."
+  ]
+}

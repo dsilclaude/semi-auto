@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "3",
+    "x": 1250.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w15_r2c2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T17:08:49",
+  "elapsed_s": 37.635881185531616,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -4.0,
+      "stop": 15.0,
+      "points": 130,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 2.5e-05,
+      "S": 0.00025
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth/SS/on-off 비뿐이라 음의 -20 V 영역까지 내려갈 이유가 없다. 앞 두 소자에서 turn-on 은 Vth 1.5~2.4 V, off 바닥은 -3~-5 V 에서 이미 확보되어 5.9 decade 가 나왔고 그 아래는 정보가 없는 구간이었다. 따라서 -4 V 에서 시작해 off 바닥을 2~3 decade 확보하고, on 포화는 site1 에서 15 V 이상에서 더 얻은 것이 없으므로 15 V 로 끊는다. 실측 SS 0.40~0.46 V/dec 기준 스텝은 SS/1.5≈0.27 V 이하여야 하므로 19 V/130pt=0.146 V 로 여유 있게 잡아 이중 turn-on 어깨도 분해한다(double 이라 실측 260점)."
+  }
+}

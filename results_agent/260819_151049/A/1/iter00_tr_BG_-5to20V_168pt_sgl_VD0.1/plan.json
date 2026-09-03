@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w24_d1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T15:11:14",
+  "elapsed_s": 9.505914688110352,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -5.0,
+      "stop": 20.0,
+      "points": 168,
+      "direction": "single",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 4e-05,
+      "S": 0.0004
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth·SS·on/off 비뿐이므로 히스테리시스용 왕복은 불필요하다 — single 로 바꿔 누적 스트레스를 절반으로 줄인다. off 바닥(1e-13 A)을 몇 decade 확보하려면 turn-on(Vth 1.55 V) 아래로 -5 V 면 충분하고, on 전류 기준점(Vg=20 V, Vd=0.1 V)까지는 올려야 on/off 비가 스펙과 비교 가능하다. SS 0.27 V/dec 이므로 스텝은 SS/1.5=0.18 V 이하가 필요 — 25 V 범위에 168 pt 로 0.150 V/step 을 확보했다."
+  }
+}

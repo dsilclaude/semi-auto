@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "3",
+    "x": 1250.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w15_r2c2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-09-03T15:39:15",
+  "elapsed_s": 45.22918081283569,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -2.0,
+      "stop": 10.0,
+      "points": 161,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "100 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "앞 두 소자에서 turn-on 은 2.4~3.1 V 로 창 안에 있었고 SS 도 0.33~0.34 V/dec 로 잡혔다. 다만 두 번 모두 gm 꼭대기가 창 상단 경계(4.0 V, 7.9 V)에 걸려 이동도가 하한값으로만 나왔으므로, on 영역을 10 V 까지 늘려 gm 피크를 창 안에 넣는다. 아래쪽은 site2 가 -2 V 에서 이미 off floor(5.67 decade, edge trend 0.15 dec/V)를 확보했으므로 더 내릴 이유가 없다. 스텝은 실측 SS 0.33 V/dec 의 1/4 수준인 0.075 V 로 잡아 SS·이중 turn-on 어깨 분해능을 확보한다."
+  }
+}

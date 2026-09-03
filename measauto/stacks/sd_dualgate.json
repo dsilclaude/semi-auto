@@ -1,0 +1,133 @@
+{
+  "name": "SD_dualgate",
+  "description": "SD 웨이퍼 dual-gate IGZO TFT. BG=SiNx/SiO2 직렬, TG=SiO2 단일.",
+  "terminals": [
+    "TG",
+    "BG",
+    "D",
+    "S"
+  ],
+  "_comment_provenance": [
+    "이 파일에는 설계자료에 적힌 값만 넣는다.",
+    "출처: 251022_SD_nTFT_Oxide TFT.pdf (Silicon Display, Design & Optical Sensor Team)",
+    "",
+    "절연내압(e_max), 컴플라이언스 상한, 운용 창 같은 '안전 경계' 숫자는",
+    "설계자료에 없다. 추정값을 여기 섞으면 나중에 보는 사람이 어디까지가",
+    "자료이고 어디부터가 가정인지 구분할 수 없다.",
+    "→ 그 값들은 sd_dualgate.limits.json 에 따로 두고, 공정 담당이 채운다.",
+    "   채워지기 전에는 bounds_from_stack 이 실행을 거부한다.",
+    "",
+    "[단위 주의] 설계자료 p.8 표의 머리글은 'Thickness (A)' 이지만 칸 안의 값은",
+    "'50nm + 75nm' 처럼 nm 로 적혀 있다. nm 가 맞다. 머리글대로 옹스트롬으로",
+    "읽으면 전부 10배 틀어진다."
+  ],
+  "_comment_gates": [
+    "유전막은 전압이 아니라 필드에 반응한다. E = V/tox 이고 파괴 메커니즘",
+    "(qEλ → impact ionization → avalanche)이 E 에만 의존하므로, 안전 경계는",
+    "두께와 유전율에서 계산한다. 직렬 스택은 D(전속밀도)가 연속이라",
+    "E_i = D/ε_i → ε 작은 층에 필드가 몰린다.",
+    "아래 두께·유전율은 자료 p.8 Layer information 그대로다.",
+    "  BG 유전막 = #3 GI (VIA1)              : SiNx 50nm + SiO2 75nm, ε = 7 + 3.9",
+    "  TG 유전막 = #5 Data passivation (VIA2): SiO2 200nm (100+100),  ε = 3.9",
+    "opposing 은 구조상 그 게이트와 마주보는 단자다(가정이 아니라 배치)."
+  ],
+  "gates": {
+    "BG": {
+      "opposing": [
+        "S",
+        "D"
+      ],
+      "dielectric": [
+        {
+          "material": "SiNx",
+          "t_nm": 50.0,
+          "eps_r": 7.0
+        },
+        {
+          "material": "SiO2",
+          "t_nm": 75.0,
+          "eps_r": 3.9
+        }
+      ]
+    },
+    "TG": {
+      "opposing": [
+        "S",
+        "D"
+      ],
+      "dielectric": [
+        {
+          "material": "SiO2",
+          "t_nm": 200.0,
+          "eps_r": 3.9
+        }
+      ]
+    }
+  },
+  "_comment_gate_gate": [
+    "TG-BG 경로는 두 유전막이 직렬로 놓인다(구조). 채널이 완전히 꺼진 최악의",
+    "경우를 위한 별도 검사다. v_max 를 숫자로 적으면 계산값 대신 그 값을 쓴다."
+  ],
+  "gate_gate": {
+    "pair": [
+      "TG",
+      "BG"
+    ],
+    "v_max": null
+  },
+  "channel": {
+    "material": "IGZO (Oxide TFT, BCE)",
+    "t_nm": 20.0
+  },
+  "_comment_geometry": [
+    "자료 p.4~5. 'Layout diagram – 6um/4um TFT' = W/L.",
+    "Active 가 3 µm 2개로 split 되어 W = 6 µm, bottom gate 4 µm = L.",
+    "BG 4 / TG 2 / offset 1 µm — TG 는 채널 중앙만 덮는다(비대칭)."
+  ],
+  "geometry": {
+    "W_um": 6.0,
+    "L_um": 4.0,
+    "BG_len_um": 4.0,
+    "TG_len_um": 2.0,
+    "TG_offset_um": 1.0
+  },
+  "reference": {
+    "smartspice_EPSI": 4.74,
+    "smartspice_VTO": 1.25,
+    "note": "자료 p.27 의 SmartSPICE 모델. 층 테이블에서 계산한 직렬 등가 ε_eff = 4.74 가 EPSI 와 일치한다(교차검증 — 두께·ε 를 잘못 넣었으면 안 맞는다). 모델의 TOX=2.5E-7 은 층 테이블(125 nm)과 안 맞으므로 층 테이블 기준."
+  },
+  "_spec_reference": {
+    "_note": "설계자료 기록용. 어떤 코드도 읽지 않는다. 시드/판정은 measured 만 쓴다.",
+    "source": "251022_SD_nTFT_Oxide TFT.pdf p.25~27",
+    "device": "W=6 µm / BG 4 µm / TG 2 µm / offset 1 µm (3 µm split ×2)",
+    "vth_V": 1.55,
+    "ss_V_per_dec": 0.27,
+    "i_off_A": 1e-13,
+    "i_on_A_at_vd0p1_vg20": 1.00422e-06,
+    "i_on_A_at_vd10_vg20": 7.47e-05,
+    "characterized_vg_range_V": [
+      -20.0,
+      20.0
+    ],
+    "characterized_vd_V": [
+      0.1,
+      10.0
+    ],
+    "variant_W78": {
+      "device": "W=78 µm / BG 10 µm / TG 8 µm / offset 1 µm (자료 p.26)",
+      "vth_V": 1.7,
+      "ss_V_per_dec": 0.221,
+      "i_on_A_at_vd0p1_vg20": 6.85578e-06,
+      "i_on_A_at_vd10_vg20": 0.000516,
+      "note": "이 소자를 재려면 geometry(W_um/L_um)가 달라 별도 stack 이 필요하다."
+    }
+  },
+  "_comment_spec_reference": [
+    "자료 p.25~27 의 기대값. 판정에 쓰지 않는다 — 측정으로 확인할 대상이지",
+    "통과 기준이 아니다. 다만 시드 범위와 스텝을 정하는 근거가 된다:",
+    "SS=0.270 V/dec 이면 turn-on 7 decade 가 약 2 V 안에서 끝난다.",
+    "→ 스텝이 0.5 V 면 그 구간에 점이 3~4개뿐이라 SS 가 0.44 로 부풀려진다.",
+    "→ seed.py 가 스텝 = SS/1.5 = 0.18 V 로 잡아 0.271 로 회복된다. 실측 검증됨.",
+    "이 값을 고치면 시드가 따라 움직인다 (tests/test_seed.py 가 지킨다)."
+  ]
+}

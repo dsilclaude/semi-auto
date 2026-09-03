@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "2",
+    "x": 0.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w15_r2c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T17:07:42",
+  "elapsed_s": 37.97618865966797,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -3.0,
+      "stop": 16.0,
+      "points": 130,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 2.5e-05,
+      "S": 0.00025
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth·SS·on/off 비뿐이므로 turn-on(앞 소자 Vth_cc=2.42 V) 아래로 off floor 확인에 필요한 몇 V만 있으면 충분하다. site1 에서 -5~0 V 구간은 전부 off floor 로 정보가 없었으므로 -3 V 에서 시작하고, 위쪽도 20 V 까지 갈 필요 없이 on 포화와 BG+TG 이중 turn-on 어깨를 볼 수 있는 16 V 로 줄여 누적 스트레스(double 이라 실측 2배)를 낮췄다. 스텝은 실측 SS 0.456 V/dec 기준 SS/1.5=0.30 V 보다 촘촘한 0.146 V (130 pt) 로 잡아 SS 과대평가를 막았다."
+  }
+}

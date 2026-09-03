@@ -1,0 +1,114 @@
+{
+  "name": "SD_w24",
+  "description": "SD 웨이퍼 oxide TFT, W=24 µm / L=4 µm. 레이아웃상 gate·S·D 만 패드로 나와 있어 3프로브로 측정한다.",
+  "terminals": [
+    "BG",
+    "D",
+    "S"
+  ],
+  "_comment_provenance": [
+    "출처: 251022_SD_nTFT_Oxide TFT.pdf (Silicon Display, Design & Optical Sensor Team)",
+    "",
+    "[document]  층 구조·유전율 — 자료 p.8. 같은 웨이퍼이므로 6/4, 9/4 와 동일하다.",
+    "[document]  W = 24 µm — 사람이 알려준 실제 측정 대상.",
+    "",
+    "[!! 확인 필요] L = 4 µm 는 확정된 값이 아니다. 같은 die 의 W 스플릿",
+    "            시리즈(6/4, 9/4)와 L 이 같다고 보고 넣은 값이다. 자료에는",
+    "            6/4 와 78/10 만 있고 24/? 는 없다.",
+    "            L 이 틀리면 W/L 로 정규화하는 id_norm 과 이동도가 틀린다.",
+    "            Vth·SS·decades 와 안전 경계에는 영향이 없다.",
+    "",
+    "[inference] 기대 Vth·SS — 자료 p.25 의 6/4 소자 값. L 이 같으면 SS 는 거의",
+    "            같고 W 는 전류 크기만 바꾼다. (78/10 은 L 이 달라 SS 가 0.221)",
+    "[inference] i_on — 6/4 값을 W 비 24/6 = 4 배 한 것.",
+    "[inference] 특성화 범위 — 자료가 같은 웨이퍼를 ±20 V 에서 측정했다."
+  ],
+  "_comment_gates": [
+    "BG 유전막 = 자료 #3 GI (VIA1) : SiNx 50nm + SiO2 75nm, ε = 7 + 3.9",
+    "절연내압은 재료 물성이라 materials.json 에서 온다."
+  ],
+  "gates": {
+    "BG": {
+      "opposing": [
+        "S",
+        "D"
+      ],
+      "dielectric": [
+        {
+          "material": "SiNx",
+          "t_nm": 50.0,
+          "eps_r": 7.0
+        },
+        {
+          "material": "SiO2",
+          "t_nm": 75.0,
+          "eps_r": 3.9
+        }
+      ]
+    },
+    "TG": {
+      "opposing": [
+        "S",
+        "D"
+      ],
+      "dielectric": [
+        {
+          "material": "SiO2",
+          "t_nm": 200.0,
+          "eps_r": 3.9
+        }
+      ]
+    }
+  },
+  "_comment_tied": [
+    "[근거] 패드가 3개다(gate·S·D). 독립이면 4개여야 하고, 자료 p.4~5 는 이",
+    "소자에 top gate 가 있다고 그린다 → TG 는 존재하되 BG 에 묶여 나온 것.",
+    "die 레이아웃도 'dual gate' 와 'dual gate (BG, TG 독립)' 을 구분해 표기한다.",
+    "",
+    "BG 와 TG 가 레이아웃에서 한 패드로 묶여 나온다(그래서 3프로브).",
+    "게이트 전압이 두 유전막에 동시에 걸리므로 TG 막도 검사 대상이다.",
+    "TG 가 채널 일부만 덮어 [BG만]/[BG+TG] 두 구간이 직렬 — 이중 turn-on 원인."
+  ],
+  "tied_gates": [
+    [
+      "BG",
+      "TG"
+    ]
+  ],
+  "channel": {
+    "material": "IGZO (Oxide TFT, BCE)",
+    "t_nm": 20.0
+  },
+  "geometry": {
+    "W_um": 24.0,
+    "L_um": 4.0,
+    "TG_len_um": 2.0,
+    "TG_offset_um": 1.0
+  },
+  "reference": {
+    "smartspice_EPSI": 4.74,
+    "note": "자료 p.27 SmartSPICE 모델(6/4 기준). 층 테이블에서 계산한 ε_eff = 4.74 가 EPSI 와 일치 — 두께·ε 전사 교차검증. 같은 웨이퍼라 이 소자에도 적용된다."
+  },
+  "_spec_reference": {
+    "_note": "설계자료 기록용. 어떤 코드도 읽지 않는다. 시드/판정은 measured 만 쓴다.",
+    "source": "251022_SD_nTFT_Oxide TFT.pdf p.25 (W=6/L=4) 에서 유추 — L 이 같다는 가정 하에 W 만 환산",
+    "device": "W=24 µm / L=4 µm(확인 필요), 3프로브 (gate·S·D)",
+    "vth_V": 1.55,
+    "ss_V_per_dec": 0.27,
+    "i_off_A": 1e-13,
+    "i_on_A_at_vd0p1_vg20": 4e-06,
+    "characterized_vg_range_V": [
+      -20.0,
+      20.0
+    ],
+    "characterized_vd_V": [
+      0.1,
+      10.0
+    ]
+  },
+  "_comment_spec_reference": [
+    "판정 기준이 아니라 시드 범위·스텝의 근거다.",
+    "SS=0.270 이면 turn-on 7 decade 가 약 2 V 안에서 끝나므로 스텝이 성기면",
+    "SS 가 부풀려진다. seed.py 가 스텝 = SS/1.5 로 잡아 이를 막는다."
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "2",
+    "x": 0.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w24_r2c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-20T10:34:56",
+  "elapsed_s": 110.1883978843689,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -4.0,
+      "stop": 12.0,
+      "points": 321,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 0.001,
+      "S": 0.01
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "10 pA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "앞 소자(site 1)에서 turn-on 이 Vth≈1.66 V, SS≈0.312 V/dec 로 -2~6 V 창 안에 확실히 잡혔고 off 바닥도 -2 V 에서 이미 확보됐다(5.19 decades). 따라서 baseline 의 19 V 까지는 불필요하게 넓지만, 이번 목적에 이동도(포화·on 구동)와 BG/BG+TG 직렬 구조에서 예상되는 두 번째 turn-on(어깨)이 포함되므로 6 V 위쪽을 12 V 까지만 확장한다. 히스테리시스(왕복)를 위해 음의 시작을 -4 V 로 조금 내려 정/역 스윕의 off 구간 기준선을 확보하고, 스텝은 0.05 V(SS/1.5=0.208 V 보다 충분히 촘촘)로 유지해 SS 가 부풀지 않게 했다. double 이라 실측 642 점으로 스트레스도 baseline(850pt double) 보다 적다."
+  }
+}

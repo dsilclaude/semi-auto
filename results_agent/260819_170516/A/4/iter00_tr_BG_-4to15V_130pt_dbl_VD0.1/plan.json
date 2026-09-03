@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "4",
+    "x": 1250.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w15_r1c2"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T17:10:00",
+  "elapsed_s": 38.77389097213745,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -4.0,
+      "stop": 15.0,
+      "points": 130,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 2.5e-05,
+      "S": 0.00025
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "앞 3소자 모두 Vth_cc 1.5~2.4 V, SS 0.40~0.46 V/dec 로 turn-on 이 0~5 V 안에서 끝났고, 15 V 이상에서는 id_norm 이 이미 포화(5~6.5e-7 A)라 19 V 까지 올릴 이유가 없다. off 쪽도 -4 V 면 노이즈 플로어(5.9 decade)에 도달했으므로 baseline 의 -2.07 V 는 off 플로어 확보가 부족하고 19 V 상단은 불필요한 스트레스다. Vth/SS/on-off 만 필요하므로 -4→15 V 로 좁히고, 실측 SS 0.40 기준 스텝을 0.147 V(≈SS/2.7)로 유지해 SS 과대평가와 이중 turn-on 어깨 놓침을 함께 방지한다."
+  }
+}

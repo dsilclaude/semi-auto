@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "1",
+    "x": 0.0,
+    "y": 0.0,
+    "area": "A",
+    "note": "w9_d1"
+  },
+  "iteration": 1,
+  "timestamp": "2026-08-19T14:53:24",
+  "elapsed_s": 4.217166423797607,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -1.0,
+      "stop": 9.0,
+      "points": 51,
+      "direction": "single",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 1.5e-05,
+      "S": 0.00015
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "턴0 곡선에서 I_D는 5.0 V 부근부터 지수적으로 상승해 6 V(윈도우 끝)에서 1.05e-10 A로 여전히 상승 중이다. metrics의 polarity='p', vth_lin=1.517, ss=0.631은 -2~5 V 구간의 1e-13 A대 노이즈 플로어에 회귀가 걸린 허수치이며 turn_on_inside_window=false가 이를 뒷받침한다(실제 극성은 n형, 이력의 Vth≈5.5 V와 일치). Ig는 최대 1.6e-12 A로 컴플라이언스(1e-9 A)보다 3자리 낮고 기울기도 무시 가능하므로 상한만 최소한으로 확장한다. 스트레스 최소화를 위해 왕복 대신 single, 하한은 -1 V로 줄이고 상한은 Vth+~3.5 V인 9 V까지만, 0.2 V 스텝 51점으로 한 번에 SS/Vth를 확보한다."
+  }
+}

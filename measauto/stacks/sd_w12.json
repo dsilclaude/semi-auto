@@ -1,0 +1,126 @@
+{
+  "name": "SD_w12",
+  "description": "SD 웨이퍼 oxide TFT, W=12 µm / L=4 µm. BG·TG 가 한 패드로 묶인 dual gate. 3프로브(gate·S·D)로 측정한다.",
+  "terminals": [
+    "BG",
+    "TG",
+    "D",
+    "S"
+  ],
+  "_comment_provenance": [
+    "출처: 251022_SD_nTFT_Oxide TFT.pdf (Silicon Display, Design & Optical Sensor Team)",
+    "",
+    "[document]  층 구조·유전율 — 자료 p.8. 같은 웨이퍼이므로 다른 폭과 동일하다.",
+    "[document]  W = 12 µm — 사람이 알려준 실제 측정 대상.",
+    "[observed]  BG·TG 가 묶여 있음 — 패드 3개 관측 (_comment_tied 참고).",
+    "",
+    "[!! 확인 필요] L = 4 µm 는 확정값이 아니다. 같은 die 의 W 스플릿 시리즈와",
+    "            L 이 같다고 보고 넣었다. 자료에는 6/4 와 78/10 만 있다.",
+    "            L 이 틀리면 id_norm 과 이동도가 틀린다.",
+    "            Vth·SS·decades 와 안전 경계에는 영향이 없다."
+  ],
+  "_comment_gates": [
+    "BG 유전막 = 자료 #3 GI (VIA1)              : SiNx 50nm + SiO2 75nm, ε = 7 + 3.9",
+    "TG 유전막 = 자료 #5 Data passivation(VIA2) : SiO2 200nm (100+100), ε = 3.9",
+    "절연내압은 재료 물성이라 materials.json 에서 온다.",
+    "",
+    "[중요] BG 와 TG 가 독립이 아니다 — 한 패드로 묶여 나온다. 게이트에 건",
+    "전압이 두 유전막에 동시에 걸리므로 TG 막도 검사 대상이다. 빼두면 그 막이",
+    "검사를 통째로 비껴간다(지금은 BG 30.9 V < TG 60 V 라 결과가 같을 뿐)."
+  ],
+  "gates": {
+    "BG": {
+      "opposing": [
+        "S",
+        "D"
+      ],
+      "dielectric": [
+        {
+          "material": "SiNx",
+          "t_nm": 50.0,
+          "eps_r": 7.0
+        },
+        {
+          "material": "SiO2",
+          "t_nm": 75.0,
+          "eps_r": 3.9
+        }
+      ]
+    },
+    "TG": {
+      "opposing": [
+        "S",
+        "D"
+      ],
+      "dielectric": [
+        {
+          "material": "SiO2",
+          "t_nm": 200.0,
+          "eps_r": 3.9
+        }
+      ]
+    }
+  },
+  "_comment_tied": [
+    "[근거] BG·TG 가 묶여 있다는 것은 관측으로 확정됐다:",
+    "  1. 이 소자의 패드는 3개다 (gate, S, D). 독립이면 4개여야 한다.",
+    "  2. 자료 p.4~5 는 이 소자에 top gate 2 µm 가 있다고 그린다.",
+    "     → TG 가 존재하는데 따로 뺄 패드가 없다 = BG 에 묶여 나온 것.",
+    "  3. die 레이아웃에 'dual gate' 와 'dual gate (BG, TG 독립)' 이 나란히 있다.",
+    "     구분자는 필요한 쪽에만 붙으므로, 표기 없는 쪽이 묶인 것이다.",
+    "",
+    "대표 이름은 BG — config.roles 의 단자명과 맞춰야 plan/executor 가 같은 것을",
+    "가리킨다.",
+    "",
+    "해석에 미치는 영향: TG 는 채널 4 µm 중 2 µm 만 덮고 1 µm offset 이 있다.",
+    "즉 채널이 [BG 만] 과 [BG+TG] 두 구간의 직렬이고, 두 구간의 게이트 결합이",
+    "달라 서로 다른 Vg 에서 켜진다. transfer 곡선에 이중 turn-on(어깨)이 보이면",
+    "계면 트랩보다 이 구조가 먼저 의심된다.",
+    "",
+    "이동도: metrics 는 C_BG(33.6 nF/cm²)로 계산한다. BG 만 덮는 구간이 전류를",
+    "율속하므로 그 구간 기준으로는 타당하지만, BG+TG 구간은 결합이 더 크다",
+    "(병렬 ≈ 50.9 nF/cm²). 그래서 이 소자의 이동도는 '구간 평균이 아닌 근사'다."
+  ],
+  "tied_gates": [
+    [
+      "BG",
+      "TG"
+    ]
+  ],
+  "channel": {
+    "material": "IGZO (Oxide TFT, BCE)",
+    "t_nm": 20.0
+  },
+  "geometry": {
+    "W_um": 12.0,
+    "L_um": 4.0,
+    "TG_len_um": 2.0,
+    "TG_offset_um": 1.0
+  },
+  "reference": {
+    "smartspice_EPSI": 4.74,
+    "note": "자료 p.27 SmartSPICE 모델(6/4 기준). 층 테이블에서 계산한 ε_eff = 4.74 가 EPSI 와 일치 — 두께·ε 전사 교차검증. 같은 웨이퍼라 이 소자에도 적용된다."
+  },
+  "_spec_reference": {
+    "_note": "설계자료 기록용. 어떤 코드도 읽지 않는다. 시드/판정은 measured 만 쓴다.",
+    "source": "251022_SD_nTFT_Oxide TFT.pdf p.25 (W=6/L=4) 에서 유추 — L 이 같다는 가정 하에 W 만 환산",
+    "device": "W=12 µm / L=4 µm(확인 필요), 3프로브 (gate·S·D), BG·TG 묶임",
+    "vth_V": 1.55,
+    "ss_V_per_dec": 0.27,
+    "i_off_A": 1e-13,
+    "i_on_A_at_vd0p1_vg20": 2.00844e-06,
+    "characterized_vg_range_V": [
+      -20.0,
+      20.0
+    ],
+    "characterized_vd_V": [
+      0.1,
+      10.0
+    ]
+  },
+  "_comment_spec_reference": [
+    "판정 기준이 아니라 시드 범위·스텝의 근거다. 측정으로 확인할 대상이다.",
+    "SS=0.270 이면 turn-on 7 decade 가 약 2 V 안에서 끝나므로 스텝이 성기면",
+    "SS 가 부풀려진다. seed.py 가 스텝 = SS/1.5 로 잡아 이를 막는다."
+  ]
+}

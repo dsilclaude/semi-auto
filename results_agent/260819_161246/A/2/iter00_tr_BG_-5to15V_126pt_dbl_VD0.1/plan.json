@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "2",
+    "x": 0.0,
+    "y": -300.0,
+    "area": "A",
+    "note": "w21_r2c1"
+  },
+  "iteration": 0,
+  "timestamp": "2026-08-19T16:14:49",
+  "elapsed_s": 37.36449146270752,
+  "plan": {
+    "kind": "transfer",
+    "var1": {
+      "terminal": "BG",
+      "start": -5.0,
+      "stop": 15.0,
+      "points": 126,
+      "direction": "double",
+      "spacing": "linear",
+      "compliance": 1e-09,
+      "step": null,
+      "label": "VBG"
+    },
+    "var2": null,
+    "constants": {
+      "S": 0.0,
+      "D": 0.1
+    },
+    "compliances": {
+      "D": 3.5e-05,
+      "S": 0.00035
+    },
+    "timing": {
+      "hold": 1.0,
+      "delay": 0.0,
+      "step_delay": 0.0,
+      "auto_abort": false,
+      "post": "START"
+    },
+    "adc": {
+      "adc_type": "HRADC",
+      "mode": "AUTO",
+      "n": 10,
+      "auto_zero": false
+    },
+    "ranges": {
+      "TG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "BG": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "D": {
+        "mode": "limited",
+        "range": "1 nA"
+      },
+      "S": {
+        "mode": "limited",
+        "range": "1 nA"
+      }
+    },
+    "label": "seed_BG_from_stack",
+    "note": "목적이 Vth·SS·on/off 비뿐이므로 turn-on(Vth≈1.55 V) 아래로 오프 플로어를 확인할 몇 decade만 있으면 충분하다. SS 0.27 V/dec 이면 7 decade 전이가 약 1.9 V 안에서 끝나므로 -5 V 시작이면 오프 영역(1e-13 A)을 확보하고도 여유가 있고, 자료가 특성화한 -20 V 까지 내려갈 이유는 없다(히스테리시스/NBS 목적이 아님). 위쪽은 15 V 면 i_on(≈3.5 µA@20 V)에 근접한 포화 온 전류를 얻어 on/off 비 산정에 충분하며, 20 V 경계까지 밀어붙일 필요가 없다. 스텝은 20 V/125 = 0.16 V 로 SS/1.5=0.18 V 이하를 유지했고, 히스테리시스가 목적이 아니므로 single 로 누적 스트레스를 절반으로 줄였다."
+  }
+}

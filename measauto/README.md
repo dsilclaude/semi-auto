@@ -69,7 +69,85 @@ cd E:\semi-auto
     --glob "projects/grid_measure/results_idvd/manual*.csv" --heuristic
 ```
 
-## 실제 장비로
+## 화면으로 (measauto_ui.py)
+
+명령줄 인자를 외우지 않고 돌리려면 저장소 루트의 UI 를 쓴다.
+
+- **더블클릭** — 저장소 폴더의 `자동측정 UI 실행.bat`
+- 터미널 — `.\run_ui.ps1` 또는 `.\.venv\Scripts\python.exe measauto_ui.py`
+
+`.ps1` 은 더블클릭으로 안 돌아간다(Windows 가 실행이 아니라 편집으로 연다).
+그래서 더블클릭용은 `.bat` 이다. 그 `.bat` 안의 글자가 전부 영어인 것도 이유가
+있다 — `cmd.exe` 는 `.bat` 을 UTF-8 이 아니라 시스템 코드페이지(949)로 읽어서,
+한글을 넣으면 깨진 채로 파싱돼 스크립트 자체가 망가진다. 사람이 읽어야 할
+한글 메시지는 `measauto_ui.py` 의 `_fatal()` 이 OS 대화상자로 띄운다.
+
+`.bat` 은 창을 콘솔 없이(`pythonw`) 띄우므로 검은 창이 남지 않는다. 대신
+띄우기 **전에** PySide6/matplotlib 을 확인하고 없으면 그 자리에서 설치한다 —
+콘솔이 없으면 실패해도 아무것도 안 보이기 때문이다.
+
+바탕화면 바로가기는 **`DSIL 자동측정`** 이고 아이콘은 로고의 파란 D 다.
+`.bat` 파일 자체를 옮기면 안 된다 — 저장소 폴더 안에 있어야 `measauto` 를 찾는다.
+바로가기가 없어졌으면 이렇게 다시 만든다:
+
+```powershell
+$repo = $PWD.Path
+$s = (New-Object -ComObject WScript.Shell).CreateShortcut(
+        (Join-Path ([Environment]::GetFolderPath('Desktop')) 'DSIL 자동측정.lnk'))
+$s.TargetPath       = Join-Path $repo '자동측정 UI 실행.bat'
+$s.WorkingDirectory = $repo
+$s.IconLocation     = (Join-Path $repo 'dsil_d.ico') + ',0'
+$s.WindowStyle      = 7      # 최소화 — .bat 이 도는 순간의 검은 창 깜빡임을 줄인다
+$s.Save()
+```
+
+아이콘은 `docs/make_icon.py` 가 `measauto_ui.py` 에 embed 된 로고에서 구워낸다
+(로고 파일을 따로 두지 않는 방침이라 아이콘도 거기서 뽑는다). 두 벌이 나온다:
+
+| 파일 | 모양 |
+|---|---|
+| `dsil_d.ico` | 투명 배경 위의 파란 D — 로고 그대로 |
+| `dsil_d_tile.ico` | 흰 라운드 타일 위의 파란 D — 어두운 배경화면에서 읽힌다 |
+
+`#004191` 은 어두운 색이라 검은 배경화면에서는 잘 안 보인다. 그럴 때 위
+스크립트의 `IconLocation` 을 `dsil_d_tile.ico` 로 바꿔 다시 저장하면 된다.
+`docs/icon_preview.png` 에 밝은/어두운 배경 비교가 있다.
+
+UI 는 **measauto 를 고치지 않는다.** 값을 만들어 `Session` 에 넘기는 얇은 층이고,
+안전 경계는 `safety`, 지표는 `metrics`, 조건 판단은 `agent` 가 그대로 한다.
+
+화면은 위에서 아래로 네 칸이다.
+
+| 칸 | 하는 일 |
+|---|---|
+| 1 소자와 안전 경계 | `stacks/*.json` 선택 → `bounds_from_stack` 결과를 그대로 표시 |
+| 2 측정 지점 | 좌표 CSV/XLSX. **체크한 소자만** 측정한다 |
+| 3 측정 조건 | 목적 / 게이트 / V_D / 스윕 방향, 그리고 자동 계산 ↔ 직접 입력 |
+| 4 판단 | 고정 조건 여부, 판단 주체, 탐색할 소자 수 |
+
+`[검증만]` 은 장비를 열지 않고 `validate` 까지만 태운다. 처음엔 이걸로 확인한다.
+`[중단]` 은 **지금 소자를 끝내고** 멈춘다 — 스윕 도중에 끊으면 장비가 어중간한
+상태로 남기 때문이다. 어느 경로로 끝나든 마지막에 `home()`(**출력 OFF** → 분리
+→ 원점 → 재접촉)이 돈다.
+
+탐색 소자 수 안에서 조건이 확정되지 않으면 **남은 소자를 재지 않고 멈추고,
+화면에 `수렴 실패` 로 표시한다.** 그때까지 측정된 곡선과 지표는 결과 폴더에
+그대로 남는다.
+
+### 고정 조건 (기본값: 직접 입력이면 자동으로 켜짐)
+
+체크하면 모든 소자에 `run_site(fixed_plan=...)` 로 같은 조건이 나가고,
+`policy` 는 **한 번도 안 불린다** — API 과금이 0 이고, 화면에 적힌 조건이
+그대로 측정에 들어간다. 끄면 앞의 `탐색할 소자 수` 만큼 에이전트가 조건을
+찾고 확정된 plan 을 나머지에 적용한다(= `session.run_area` 와 같은 동작).
+
+### 화면이 하지 않는 것
+
+값을 평가하거나 대신 고쳐 주지 않는다. 스텝 표시(`범위 ÷ (점 수−1)`)처럼
+산술만 한다. "이 정도면 괜찮겠지" 를 UI 가 시작하면 판단이 두 곳에 생기고
+그때부터 결과를 추적할 수 없다.
+
+## 실제 장비로 (명령줄)
 
 ```powershell
 # 먼저 검증만 (장비 안 엶)
@@ -95,18 +173,20 @@ cd E:\semi-auto
 **지표(정확히 계산) + 다운샘플 곡선(20~30점)** 의 조합으로 간다. 실측 payload
 크기는 900자 안쪽이다.
 
-> ⚠️ **현재 기본값은 `SessionConfig.send_full_csv = True` 라 위 설명과 다르게
-> 측정 CSV 원본 전체가 그대로 간다.** 두 방식을 직접 비교해보려고 켜 둔 것이다.
-> 실측 (`results_idvd/subsite_1.csv`, 91 KB / 2,430 행):
->
-> | 설정 | payload | 대략 토큰 |
-> |---|---|---|
-> | `send_full_csv=True` (`data_csv`) | 105,479 자 | ≈ 30,100 |
-> | `send_full_csv=False` (`curve`) | 903 자 | ≈ 258 |
->
-> 이력이 턴마다 쌓이므로 5턴이면 요청 하나가 **≈150k 토큰**이다. 비교가 끝나면
-> `send_full_csv=False` 로 되돌리는 것을 권한다. `csv_max_rows` 로 행 수만 줄일
-> 수도 있다(균등 추출).
+**원본 CSV 를 보내는 경로는 없다.** 있었는데 없앴다(`send_full_csv`,
+`csv_payload`). 두 방식을 실측으로 비교한 결과다
+(`results_idvd/subsite_1.csv`, 91 KB / 2,430 행):
+
+| 보내는 것 | payload | 대략 토큰 |
+|---|---|---|
+| 원본 CSV (`data_csv`) | 105,479 자 | ≈ 30,100 |
+| 다운샘플 곡선 (`curve`) | 903 자 | ≈ 258 |
+
+이력이 턴마다 쌓이므로 원본을 보내면 5턴에 요청 하나가 **≈150k 토큰**이었다.
+400배를 더 내고 얻는 것이 없다 — 지표는 어차피 코드가 계산하고, LLM 은 긴
+배열을 눈대중으로 읽는다. **원본은 `store` 가 결과 폴더에 `data.csv` 로
+그대로 저장하므로 사람은 언제든 볼 수 있다.** 다시 넣지 말 것
+(`tests/test_cost_and_output.py` 가 막는다).
 
 ```json
 {"metrics": {"vth_cc": 2.1, "ss": 0.18, "ss_points": 5, "decades": 5.4,
@@ -202,6 +282,18 @@ C_BG  = ε0·ε_eff / 125 nm = 33.6 nF/cm²  (W=6 소자에서 µ ≈ 10.8 cm²/
 탐색 자체가 소자를 오염시킨다. 소자마다 탐색하지 말고 area 당 1~2개로
 캘리브레이션한 뒤 나머지엔 확정 plan 을 적용한다 (`SessionConfig.calibration_sites`).
 `prior_devices` 가 프롬프트에 누적되면 3번째 소자쯤엔 한 턴에 끝난다.
+
+**`calibration_sites` 는 상한이다.** 그 안에서 조건이 확정되지 않으면 남은
+소자를 재지 않고 멈춘다. 예전에는 `i < calibration_sites or locked is None`
+이라 확정 plan 을 못 얻으면 *모든* 소자가 계속 에이전트를 불렀다 — 16 소자면
+4회로 끝날 실행이 32회가 됐다. 비용만의 문제가 아니다: 조건이 안 정해진 채로
+남은 소자를 계속 찍으면 서로 비교할 수 없는 곡선만 쌓이고 소자는 이미
+스트레스를 받는다. 안 재는 편이 낫고, 조건을 다시 정하는 것은 사람 몫이다.
+`calibration_sites=0` 은 '탐색하지 않는다' — 시드를 그대로 쓰고 에이전트를
+한 번도 부르지 않는다.
+
+**에이전트 호출 수의 상한은 `2 × calibration_sites` 다** (소자당 조건 제안 1회
++ 관측 후 판단 1회). 소자 수와 무관하다.
 
 **iteration 횟수 자체가 스크리닝 지표다** — LLM 호출이 몰리는 곳이 곧 이상
 소자다. `results/index.csv` 의 `iteration` 열을 세면 바로 보인다.

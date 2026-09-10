@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import traceback
 
-from . import (test_intake, test_loop, test_metrics, test_report, test_safety,
-               test_seed, test_seed_agent, test_unknown_width)
+from . import (test_cost_and_output, test_intake, test_loop, test_metrics,
+               test_report, test_safety, test_seed, test_seed_agent,
+               test_unknown_width)
 
 MODULES = [test_safety, test_metrics, test_seed, test_seed_agent,
-           test_unknown_width, test_intake, test_report, test_loop]
+           test_unknown_width, test_intake, test_report, test_loop,
+           test_cost_and_output]
 
 
 def main() -> int:

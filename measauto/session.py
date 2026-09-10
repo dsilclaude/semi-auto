@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional
 from .agent.policy import HeuristicPolicy, Policy, Proposal
 from .agent.schema import PlanPatch, apply_patch
 from .executor import Executor, Site
-from .metrics import csv_payload, downsample_curve, summarize, to_llm_payload
+from .metrics import downsample_curve, summarize, to_llm_payload
 from .plan import IVPlan, with_axis
 from .safety import Bounds, validate
 from .store import Store
@@ -34,14 +34,7 @@ class SessionConfig:
     calibration_sites: int = 2      # area 당 에이전트가 탐색할 소자 수
     max_retry_on_violation: int = 2  # 경계 위반 제안을 몇 번까지 되돌려 보낼지
     min_confidence: float = 0.0     # 이보다 낮으면 needs_human 으로 넘긴다
-    curve_points: int = 25          # LLM 에 넘길 다운샘플 점 수 (send_full_csv=False 일 때)
-
-    # --- LLM 에 곡선을 어떤 형태로 넘길지 -----------------------------------
-    # True  = 측정 CSV 원본 전체를 그대로 (data_csv)
-    # False = 20~30점 다운샘플 + log10 (curve)  ← 토큰이 적고 중간 정보가 잘 보인다
-    # 어느 쪽이든 metrics 는 항상 같이 간다. 지표는 코드가 계산한 값을 쓴다.
-    send_full_csv: bool = True
-    csv_max_rows: Optional[int] = None   # None = 자르지 않음
+    curve_points: int = 25          # LLM 에 넘길 다운샘플 점 수
 
     # --- 소자당 1회일 때의 조정 경로 -----------------------------------------
     # max_iters=1 이면 관측을 보고 조건을 고칠 기회가 소자 안에는 없다.
@@ -320,10 +313,17 @@ class Session:
         return res
 
     def _payload(self, m: dict, df, plan: IVPlan) -> dict:
-        """관측을 LLM 에 넘길 형태로. send_full_csv 가 두 방식을 가른다."""
-        if self.cfg.send_full_csv:
-            return to_llm_payload(
-                m, csv=csv_payload(df, max_rows=self.cfg.csv_max_rows))
+        """관측을 LLM 에 넘길 형태로.
+
+        **원본 CSV 는 절대 안 나간다.** 지표(코드가 계산) + 20~30점 다운샘플
+        곡선만 간다. 원본은 store 가 결과 폴더에 data.csv 로 그대로 저장하므로
+        사람은 언제든 볼 수 있고, 잃는 것이 없다.
+
+        원본을 보내는 경로가 있었는데 없앴다. 실측으로 페이로드가 105,479 자
+        (≈30k 토큰)였고 이력이 턴마다 쌓여 요청 하나가 150k 토큰이 됐다.
+        반면 다운샘플은 903 자(≈258 토큰)다. 400배를 더 내고 얻는 것이,
+        LLM 이 긴 배열을 눈대중으로 읽는 것뿐이다 — 지표는 어차피 코드가 낸다.
+        """
         return to_llm_payload(
             m, downsample_curve(df, plan, self.cfg.curve_points))
 
@@ -346,12 +346,40 @@ class Session:
 
     # --- area -------------------------------------------------------------
     def run_area(self, sites: List[Site], seed: IVPlan) -> List[SiteResult]:
-        """area 하나. 앞의 몇 개만 탐색하고, 나머지는 확정 plan 으로 한 번씩."""
+        """area 하나. 앞의 `calibration_sites` 개만 탐색하고, 거기서 확정된
+        plan 을 나머지에 그대로 적용한다.
+
+        **탐색 소자 수는 상한이다.** 예전에는
+
+            calibrating = i < calibration_sites or locked is None
+
+        이라 확정 plan 을 못 얻으면 *모든* 소자가 계속 에이전트를 불렀다.
+        16 소자면 4회로 끝날 실행이 32회가 됐다(실측). 상한을 지키는 편이
+        비용만이 아니라 데이터에도 낫다 — 조건이 안 정해진 채로 남은 소자를
+        계속 찍으면 서로 비교할 수 없는 곡선만 쌓인다.
+
+        그래서 탐색 소자를 다 쓰고도 수렴하지 못하면 **멈춘다.** 남은 소자는
+        건드리지 않는다(측정되지 않은 소자는 스트레스도 안 받는다). 사람이
+        조건을 보고 다시 정하는 편이 낫다는 뜻이고, 그 판단은 사람 몫이다.
+
+        `calibration_sites <= 0` 은 '탐색하지 않는다' 로 읽는다 — 시드를
+        그대로 확정 plan 으로 쓰고 에이전트를 한 번도 부르지 않는다.
+        """
         results: List[SiteResult] = []
-        locked: Optional[IVPlan] = None
+        n_cal = max(int(self.cfg.calibration_sites), 0)
+        locked: Optional[IVPlan] = seed if n_cal == 0 else None
+        if n_cal == 0:
+            print("탐색 소자 0개 — 시드 조건을 그대로 적용한다 (에이전트 호출 없음)")
 
         for i, site in enumerate(sites):
-            calibrating = i < self.cfg.calibration_sites or locked is None
+            calibrating = i < n_cal
+            if not calibrating and locked is None:
+                print(f"\n[수렴 실패] 탐색 소자 {n_cal}개를 다 썼는데 확정된 조건이 "
+                      f"없다. 남은 {len(sites) - i}개는 측정하지 않고 멈춘다.\n"
+                      f"  조건을 보고 다시 정할 것 — 범위를 넓히거나, 스택의 "
+                      f"안전 경계/기하를 확인하거나, 조건을 직접 지정한다.")
+                break
+
             r = self.run_site(site, seed, fixed_plan=None if calibrating else locked)
             results.append(r)
             print(f"[{site.area}/{site.name}] {r.status} "
@@ -362,6 +390,6 @@ class Session:
                 self.prior_devices.append(r.summary_row())
                 if r.status == "converged" and r.final_plan is not None:
                     locked = r.final_plan
-        if locked is not None:
+        if locked is not None and n_cal:
             print(f"[{sites[0].area if sites else '?'}] 확정 plan: {locked.describe()}")
         return results

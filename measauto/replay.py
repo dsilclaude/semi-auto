@@ -30,7 +30,7 @@ import pandas as pd
 from .agent.policy import Policy, Proposal
 from .executor import Site
 from .frame import load_legacy_csv
-from .metrics import csv_payload, downsample_curve, summarize, to_llm_payload
+from .metrics import downsample_curve, summarize, to_llm_payload
 from .plan import IVPlan
 from .safety import Bounds, validate
 
@@ -48,19 +48,16 @@ class ReplayCase:
 
 
 def replay_once(case: ReplayCase, policy: Policy, bounds: Bounds, *,
-                objective: str, send_full_csv: bool = True,
-                csv_max_rows: Optional[int] = None) -> dict:
+                objective: str) -> dict:
     """CSV 한 장 → 지표 → 에이전트 판단 1회.
 
-    send_full_csv 는 session 쪽 설정과 맞춰야 한다. 두 경로가 다른 형태를
-    보내면 리플레이 점수가 실제 운용을 대변하지 못한다.
+    페이로드 형태는 session._payload 와 같아야 한다 — 두 경로가 다른 것을
+    보내면 리플레이 점수가 실제 운용을 대변하지 못한다. 그래서 여기도
+    지표 + 다운샘플 곡선 하나뿐이고, 원본 CSV 를 보내는 선택지는 없다.
     """
     df = load_legacy_csv(case.path, case.roles, case.constants or case.plan.constants)
     m = summarize(df, case.plan, bounds=bounds)
-    if send_full_csv:
-        payload = to_llm_payload(m, csv=csv_payload(df, max_rows=csv_max_rows))
-    else:
-        payload = to_llm_payload(m, downsample_curve(df, case.plan))
+    payload = to_llm_payload(m, downsample_curve(df, case.plan))
 
     ctx = {
         "objective": objective,
@@ -91,20 +88,19 @@ def replay_once(case: ReplayCase, policy: Policy, bounds: Bounds, *,
 
 
 def replay_score(cases: Sequence[ReplayCase], policy: Policy, bounds: Bounds, *,
-                 objective: str, repeats: int = 3,
-                 send_full_csv: bool = True,
-                 csv_max_rows: Optional[int] = None) -> dict:
+                 objective: str, repeats: int = 3) -> dict:
     """여러 케이스 × 반복 → 상태 분포와 경계 접촉 횟수.
 
     같은 케이스에서 status 가 갈리면 프롬프트가 부실하다는 신호다.
+
+    ⚠️ repeats 는 그대로 API 호출 수다 (케이스 × repeats). 늘리기 전에
+    무엇을 몇 번 부르는지 세어 볼 것.
     """
     rows, per_case = [], {}
     for c in cases:
         statuses = []
         for _ in range(repeats):
-            r = replay_once(c, policy, bounds, objective=objective,
-                            send_full_csv=send_full_csv,
-                            csv_max_rows=csv_max_rows)
+            r = replay_once(c, policy, bounds, objective=objective)
             rows.append(r)
             statuses.append(r["status"])
         per_case[c.path.name] = Counter(statuses)

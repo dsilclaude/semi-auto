@@ -306,8 +306,7 @@ json → `Bounds`. 담기는 것: 단자쌍 전압 상한, 단자별 컴플라�
 | `output_metrics` | 편도 output 곡선 하나 → 지표 |
 | `summarize` | 최상위. branch 별 + 대표 branch 지표를 평평하게 |
 | `downsample_curve` | 대표 곡선을 20~30점으로 |
-| `csv_payload` | 측정 CSV 원본 전체를 텍스트로 (다운샘플의 반대편) |
-| `to_llm_payload` | 지표 + (곡선 \| CSV) → LLM 페이로드 |
+| `to_llm_payload` | 지표 + 다운샘플 곡선 → LLM 페이로드 |
 | `jsonable` | numpy·nan 을 순수 파이썬으로 (저장 전 필수) |
 
 transfer 지표: `id_on/id_off/decades`, `polarity`, `gm_peak`, `vth_lin`(선형 외삽),
@@ -349,21 +348,27 @@ output 지표: `saturation_ratio`, `r_on_ohm`, `crowding_index`(접촉 저항 �
 - **함정** — 노이즈로 Id 가 음수면 log10 이 깨진다. 산화물 TFT off 영역에서 실제로
   자주 나오니 `|I| + 1e-15` 로 받고 부호는 `id_sign` 에 따로.
 
-#### 원본 CSV 를 통째로 보내는 선택지 (현재 기본값)
+#### 원본 CSV 를 보내는 경로는 없다 (없앴다)
 
-`SessionConfig.send_full_csv = True` 면 다운샘플 대신 **`csv_payload()` 가 만든 CSV
-원본 전체**가 `data_csv` 로 실린다. 두 방식을 실측 비교하려고 켜 둔 상태다.
+`SessionConfig.send_full_csv` / `metrics.csv_payload` / `to_llm_payload(csv=)` 가
+있었다. 두 방식을 실측 비교한 뒤 전부 지웠다.
 
 `results_idvd/subsite_1.csv` (91 KB / 2,430 행) 기준:
 
-| 설정 | payload | 대략 토큰 | 5턴 누적 |
+| 보내는 것 | payload | 대략 토큰 | 5턴 누적 |
 |---|---|---|---|
-| `send_full_csv=True` | 105,479 자 | ≈ 30,100 | ≈ 150k |
-| `send_full_csv=False` | 903 자 | ≈ 258 | ≈ 1.3k |
+| 원본 CSV (`data_csv`) | 105,479 자 | ≈ 30,100 | ≈ 150k |
+| 다운샘플 곡선 (`curve`) | 903 자 | ≈ 258 | ≈ 1.3k |
 
-**어느 쪽이든 `metrics` 는 항상 같이 간다.** 배열이 있다고 LLM 에게 회귀를 시키면
-눈대중 답이 오고 틀려도 알아챌 방법이 없으므로, 프롬프트가 *"vth·ss·decades 를 데이터에서
-다시 읽지 말고 metrics 값을 쓰라"* 고 명시한다.
+400배를 내고 얻는 것이 없었다. 배열이 있다고 LLM 에게 회귀를 시키면 눈대중 답이
+오고 틀려도 알아챌 방법이 없으므로, `metrics` 는 어차피 항상 같이 가고 프롬프트가
+*"vth·ss·decades 를 데이터에서 다시 읽지 말고 metrics 값을 쓰라"* 고 명시한다.
+그러면 원본 배열이 할 일이 없다.
+
+**원본을 못 보는 것이 아니다** — `store` 가 결과 폴더에 `data.csv` 로 그대로
+저장한다. 사람이 보는 경로와 LLM 이 보는 경로를 나눈 것뿐이다.
+`tests/test_cost_and_output.py::test_raw_csv_never_reaches_the_payload` 가
+되살아나는 것을 막는다.
 
 `replay_once()` / `replay_score()` 에도 같은 인자가 있다 — **두 경로가 다른 형태를
 보내면 리플레이 점수가 실제 운용을 대변하지 못한다.**
@@ -414,12 +419,27 @@ validate(plan) ──위반──> 에이전트에게 되돌려 보냄 (max_retr
 
 > **탐색 자체가 소자를 오염시킨다.** 소자마다 탐색하면 스트레스가 전수에 쌓인다.
 
+**`calibration_sites` 는 상한이고, 그 안에서 수렴하지 못하면 멈춘다.** 예전 조건은
+
+```python
+calibrating = i < self.cfg.calibration_sites or locked is None   # ← 뒤쪽 절이 문제였다
+```
+
+이라, `locked` 를 못 얻으면 남은 소자가 전부 계속 에이전트를 불렀다. 16 소자면
+4회로 끝날 실행이 32회가 됐다. 지금은 탐색 예산을 다 쓰고도 조건이 없으면 남은
+소자를 건드리지 않고 빠져나온다 — 조건이 안 정해진 채 찍은 곡선은 서로 비교할 수
+없고, 소자는 이미 스트레스를 받는다. 안 재는 편이 낫다. `calibration_sites=0` 은
+'탐색하지 않는다'(시드를 그대로 확정 plan 으로).
+
+**에이전트 호출 상한 = `2 × calibration_sites`** (소자당 시드 제안 1 + 관측 판단 1).
+소자 수와 무관하다. `tests/test_cost_and_output.py` 가 이 상한을 지킨다.
+
 부수 효과 하나: **iteration 횟수 자체가 스크리닝 지표다.** LLM 호출이 몰리는 소자가
 곧 이상 소자다. `index.csv` 의 `iteration` 열을 세면 바로 보인다.
 
 `SessionConfig` 로 조절: `objective`(**사람이 정하는 유일한 정보**), `max_iters`,
 `calibration_sites`, `max_retry_on_violation`, `min_confidence`, `curve_points`,
-`send_full_csv`, `csv_max_rows`.
+`adapt_seed_per_site`, `force_direction`.
 
 관측을 어떤 형태로 넘길지는 `Session._payload()` 한 곳에서 갈린다 (4-5 참고).
 
@@ -687,7 +707,8 @@ Session.run_site(site, seed)
 | 프로브 배선이 바뀜 | `config.py` 의 `roles` | 값만 |
 | dual gate (SMU 4개) | `config.DUAL_GATE` 사용 | 값만 |
 | 측정 목적을 바꿈 | `SessionConfig.objective` | 값만 |
-| CSV 원본 ↔ 다운샘플 전환 | `SessionConfig.send_full_csv` / `csv_max_rows` | 값만 |
+| LLM 에 보낼 곡선 점 수 | `SessionConfig.curve_points` (원본 CSV 는 안 보낸다) | 값만 |
+| 에이전트 호출 상한 | `SessionConfig.calibration_sites` (호출 ≤ 2×이 값) | 값만 |
 | 에이전트 판단 기준 | `agent/prompt.py` 의 `SYSTEM_PROMPT` | 프롬프트 |
 | 에이전트가 낼 수 있는 필드 추가 | `agent/schema.py` (`PlanPatch` + `_PATCH_PROPS` + `apply_patch`) | ✅ |
 | 새 지표 추가 | `metrics.py` + `to_llm_payload` 의 `default_keep` | ✅ |

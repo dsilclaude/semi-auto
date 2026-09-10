@@ -114,14 +114,34 @@ class B1500:
         if n:
             print(f"[b1500] 묵은 에러 {n}개 제거함")
 
+        # 전 채널 출력 OFF. VISA Device Clear(clear)는 측정을 중단시킬 뿐
+        # 출력을 내리지 않고, initialize_all_smus 는 파이썬 객체만 만든다.
+        # 그래서 지난 세션이 스윕 post 값(예: V_BG -2 V)을 계속 인가한 채로
+        # 남아 있을 수 있다 — 소자에는 그동안 DC 바이어스 스트레스가 쌓인다.
+        # 측정 조건은 어차피 plan 이 매번 새로 세우므로 여기서 끄고 시작한다.
+        b.write("CL")
+
         b.initialize_all_smus()
         b.data_format(21, mode=1)   # SMU 초기화 후 호출
         self.inst = b
         return self
 
+    def outputs_off(self) -> None:
+        """전 채널 출력 OFF (FLEX `CL`). 실패해도 예외를 올리지 않는다 —
+        부르는 쪽은 대개 정리 경로라 여기서 터지면 뒷정리가 통째로 멈춘다."""
+        if self.inst is None:
+            return
+        try:
+            self.inst.write("CL")
+        except Exception as e:
+            print(f"[b1500] 출력 OFF 실패(확인 필요): {e}")
+
     def close(self):
         try:
             if self.inst is not None:
+                # 세션만 닫으면 SMU 는 마지막 값을 계속 인가한다. 팁이 소자에
+                # 닿은 채로 끝나므로(executor.home) 출력을 내리고 나간다.
+                self.outputs_off()
                 self.inst.adapter.close()
         except Exception as e:              # 세션 정리는 실패해도 진행
             print(f"[b1500] close 중 예외(무시 가능): {e}")

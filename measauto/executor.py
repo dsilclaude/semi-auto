@@ -208,11 +208,19 @@ class Executor:
         time.sleep(self.cfg.settle_s)
         return self.s300.read_position()
 
+    def outputs_off(self) -> None:
+        """소자에 걸린 전압을 내린다. 장비가 없으면 조용히 넘어간다."""
+        if self.b1500 is not None and hasattr(self.b1500, "outputs_off"):
+            self.b1500.outputs_off()
+
     def home(self):
-        """분리 → 원점(0,0) 복귀 → 다시 접촉.
+        """출력 OFF → 분리 → 원점(0,0) 복귀 → 다시 접촉.
 
         마지막에 원점에 컨택된 상태로 끝내야, 다음 실행에서 첫 소자(0,0)를
-        곧바로 측정하는 전제가 그대로 성립한다."""
+        곧바로 측정하는 전제가 그대로 성립한다. 다만 그 상태로 남는다는 것은
+        **팁이 소자에 닿은 채로 끝난다**는 뜻이라, 출력을 먼저 내린다. 안 그러면
+        스윕 post 값(예: V_BG -2 V)이 그대로 인가된 채 며칠씩 남는다."""
+        self.outputs_off()
         z = self._z_contact or int(self.s300.read_position()[2])
         self.s300.separate()
         self.s300.move_xy(0, 0)

@@ -657,37 +657,7 @@ def downsample_curve(df: pd.DataFrame, plan: IVPlan, n: int = 25) -> dict:
     return jsonable(curve)
 
 
-def csv_payload(df: pd.DataFrame, *, max_rows: Optional[int] = None,
-                float_format: str = "%.6g") -> dict:
-    """정규화된 측정 데이터를 CSV 텍스트 그대로 담는다 (다운샘플의 반대편 선택지).
-
-    downsample_curve 대신 이걸 쓰면 원본 전체가 그대로 LLM 에 간다.
-    무엇을 감수하는지는 알고 쓸 것:
-      · 토큰 — 실측 결과 CSV 는 90 KB 대(≈25k 토큰)다. 이력이 턴마다 쌓이므로
-        5턴이면 요청 하나가 100k 토큰을 넘길 수 있다.
-      · 긴 배열은 중간 정보가 잘 안 보인다. 지표를 같이 넘기는 이유가 그것이다.
-      · 지표(vth/ss)는 여전히 metrics 가 계산한 값을 쓴다. 배열이 있다고 해서
-        LLM 에게 회귀를 시키면 눈대중 답이 오고, 틀려도 알아챌 방법이 없다.
-
-    max_rows 를 주면 그 수만큼 균등 추출한다(None = 전체, 자르지 않음).
-    """
-    n = len(df)
-    if max_rows is not None and n > max_rows:
-        idx = np.unique(np.linspace(0, n - 1, max_rows).astype(int))
-        out = df.iloc[idx]
-    else:
-        out = df
-    return {
-        "n_rows_total": int(n),
-        "n_rows_sent": int(len(out)),
-        "truncated": bool(len(out) != n),
-        "columns": [str(c) for c in out.columns],
-        "csv": out.to_csv(index=False, float_format=float_format),
-    }
-
-
 def to_llm_payload(m: dict, curve: Optional[dict] = None, *,
-                   csv: Optional[dict] = None,
                    keep: Sequence[str] = ()) -> dict:
     """지표 dict → LLM 에 넣을 최소 페이로드.
 
@@ -695,8 +665,9 @@ def to_llm_payload(m: dict, curve: Optional[dict] = None, *,
     순서: 지표만으로 시작 → 애매한 케이스가 보이면 곡선 추가 → 이상 케이스에서만
     점수를 올린다. 지표 없이 곡선만은 안 되고, 곡선 없이 지표만은 괜찮다.
 
-    curve / csv 는 배타적으로 쓰는 것을 전제한다 (둘 다 주면 둘 다 실린다).
-    csv 는 csv_payload() 의 반환값 — 원본 전체를 보낼 때만.
+    **원본 CSV 를 싣는 경로는 없다.** 있었는데 없앴다 — 실측 105,479 자
+    (≈30k 토큰) vs 다운샘플 903 자(≈258 토큰)였고, 그 400배로 얻는 것이 없었다.
+    원본은 store 가 결과 폴더에 data.csv 로 저장한다. 다시 넣지 말 것.
     """
     default_keep = (
         # transfer — 소자 스펙 시트에 들어가는 다섯 (Vth, SS, µ, Ion/Ioff, 히스테리시스)
@@ -722,6 +693,4 @@ def to_llm_payload(m: dict, curve: Optional[dict] = None, *,
     payload = {"metrics": {k: m[k] for k in keys if k in m and m[k] is not None}}
     if curve:
         payload["curve"] = curve
-    if csv:
-        payload["data_csv"] = csv
     return jsonable(payload)

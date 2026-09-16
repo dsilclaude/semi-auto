@@ -156,8 +156,60 @@ UI 는 **measauto 를 고치지 않는다.** 값을 만들어 `Session` 에 넘�
 .\.venv\Scripts\python.exe -m measauto.examples.run_area --coords utils\grid_4x4.csv --set-reference
 ```
 
-코드 실행 전에 Nucleus UI 에서 사람이 끝내둬야 하는 것(코드가 대체하지 않음):
-척 로드/진공 → **Alignment** → Tipping/Set Contact → 첫 소자에 팁 contact.
+## 실행 전 전제 — 사람이 끝내둬야 하는 것
+
+**B1500A 본체: EasyEXPERT 를 종료할 것** (`Start EasyEXPERT` 시작 화면 상태).
+띄워둔 채로는 외부 GPIB(FLEX) 제어가 안 들어간다. 실측 2026-09-10:
+
+| 증상 | EasyEXPERT 실행 중 | 종료 후 |
+|---|---|---|
+| 주소 스캔 | `GPIB0::17` 보임 | 보임 |
+| 세션 열기 | 열림 | 열림 |
+| 시리얼 폴 | `STB=0x00` | 정상 |
+| 데이터 전송 | **`VI_ERROR_ABORT` / `VI_ERROR_IO`** | `*IDN?` 응답 |
+
+**장비가 목록에 보이고 세션도 열린다고 해서 제어가 되는 것이 아니다.** 같은
+버스의 S300 은 내내 멀쩡했으므로 어댑터·드라이버·버스 문제가 아니었다.
+`check_b1500` 이 이걸 30초 안에 가려준다.
+
+⚠️ EasyEXPERT **응용프로그램**은 끄되 **`Start EasyEXPERT` 버튼(서비스)은
+살려둘 것** — 화면에 있거나 작업표시줄에 최소화된 상태여야 한다. 매뉴얼:
+"The Start EasyEXPERT service must be run to control the B1500 from an
+external computer."
+
+### FlexGUI 창 — 자동으로 안 닫힌다
+
+GPIB 명령이 들어오는 순간 `Start EasyEXPERT` 버튼이 작업표시줄로 내려가고
+**FlexGUI 창**이 열린다. 이건 원격 제어 중이라는 표시등이고, 미리 띄우는
+것이 아니라 접속하면 저절로 열린다.
+
+측정이 끝나면 코드가 `CL`(출력 OFF) → `GTL` → 세션 close 를 보낸다.
+**그런데 이 B1500A 는 버스 신호로 로컬 복귀가 안 된다.** 실측 2026-09-10
+(GPIB0::17, NI GPIB-USB-HS):
+
+| 시도 | 결과 |
+|---|---|
+| `control_ren(6)` VI_GPIB_REN_ADDRESS_GTL | 에러 없음, `RMT` 그대로 |
+| `control_ren(0)` VI_GPIB_REN_DEASSERT | 에러 없음, `RMT` 그대로 |
+
+**측정이 끝나도 FlexGUI 는 열려 있고 `RMT` 는 켜져 있다. 그게 정상이다.**
+다음 실행에 지장 없다 — 어차피 접속하면 다시 원격 상태가 된다.
+
+**본체에서 EasyEXPERT 를 쓰고 싶을 때만** 사람이 FlexGUI 의
+`Tools > Go to Local & Close` 를 누르면 된다. 그러면 `RMT` 가 꺼지고 창이
+닫히면서 `Start EasyEXPERT` 버튼이 돌아온다.
+
+> 코드로 더 해볼 것이 없다는 뜻이다. 위 두 줄이 이미 실측으로 안 된다고
+> 나왔으니 `set_local()` 에 뭘 더 넣지 말 것.
+
+**Nucleus UI**: 척 로드/진공 → **Alignment** → Tipping/Set Contact →
+첫 소자에 팁 contact.
+
+먼저 이걸 돌려 볼 것 (프로버를 안 열므로 팁이 위험할 일이 없다):
+
+```powershell
+.\.venv\Scripts\python.exe -m measauto.examples.check_b1500
+```
 
 ⚠️ `config.py` 의 기본 `roles` 는 지금 셋업(SMU 3개: BG/D/S)이다. dual gate 를
 다 물리려면 SMU 가 4개 필요하다(슬롯 1이 WGFMU 라 SMU 번호가 한 칸 밀려 있음).

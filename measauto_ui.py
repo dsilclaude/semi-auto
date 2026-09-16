@@ -118,10 +118,11 @@ IMPORT_ERROR = ""
 try:
     from measauto.agent.policy import HeuristicPolicy, default_policy
     from measauto.config import DEFAULT
-    from measauto.executor import Executor, load_sites
+    from measauto.executor import (BusTimeout, Executor, list_visa_resources,
+                                   load_sites)
     from measauto.safety import (MissingLimitError, bounds_from_stack,
                                  load_stack, validate)
-    from measauto.seed import seed_transfer
+    from measauto.seed import seed_output, seed_transfer
     from measauto.session import Session, SessionConfig
     from measauto.store import Store
     from measauto.plan import with_axis
@@ -316,10 +317,16 @@ LOGO_BLUE_B64 = (
     "0BEL7/x/yL7u2aAGOsoAAAAASUVORK5CYII=")
 
 
-DEFAULT_OBJECTIVE = (
-    "BG transfer 에서 소자 스펙 시트 다섯 항목을 얻는다: "
-    "Vth, SS, 전계효과 이동도, on/off 비, 히스테리시스. "
-    "히스테리시스는 정/역 방향 차이이므로 왕복(double) 스윕이 필요하다.")
+OBJECTIVE = {
+    "transfer": (
+        "BG transfer 에서 소자 스펙 시트 다섯 항목을 얻는다: "
+        "Vth, SS, 전계효과 이동도, on/off 비, 히스테리시스. "
+        "히스테리시스는 정/역 방향 차이이므로 왕복(double) 스윕이 필요하다."),
+    "output": (
+        "출력특성(Id-Vd)에서 접촉저항(선형영역 기울기), 포화 진입 여부, "
+        "채널길이변조 λ 와 출력저항을 얻는다. 포화 구간이 남아야 λ 가 나오므로 "
+        "가장 높은 게이트 스텝에서도 Vd 상한이 포화 위에 있어야 한다."),
+}
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -344,6 +351,74 @@ class _Tee(io.TextIOBase):
         if self._buf.strip():
             self._emit(self._buf.rstrip())
         self._buf = ""
+
+
+class CheckWorker(QObject):
+    """장비와 통신이 되는지만 본다. **측정도 이동도 하지 않는다.**
+
+    examples/check_b1500 과 같은 순서다: 버스 조회 → B1500 열기 → IDN/모듈
+    → 출력 OFF → 닫기. 프로버는 버스에 보이는지만 확인하고 **열지 않는다** —
+    S300 은 connect 할 때 설정 명령이 나가므로, '확인'이 뭔가를 바꾸면 안 된다.
+
+    워커 스레드에서 도는 이유: 버스가 물려 있으면 조회에만 20초가 걸린다.
+    그동안 UI 가 굳으면 사람은 또 프로그램이 죽은 줄 안다.
+    """
+
+    log = Signal(str)
+    done = Signal(bool, str)
+
+    @Slot()
+    def run(self) -> None:
+        tee = _Tee(self.log.emit)
+        ok, msg = False, ""
+        try:
+            with redirect_stdout(tee):
+                ok, msg = self._run_inner()
+        except BusTimeout as e:
+            msg = "버스가 물려 있습니다 — 어댑터 USB 재연결이 필요합니다"
+            self.log.emit(str(e))
+        except Exception as e:
+            msg = f"{type(e).__name__}: {e}"
+            self.log.emit(traceback.format_exc())
+        finally:
+            tee.flush()
+        self.done.emit(ok, msg)
+
+    def _run_inner(self):
+        from measauto.drivers import B1500
+
+        cfg = DEFAULT
+        self.log.emit(f"VISA   {cfg.visa_library}")
+        self.log.emit(f"버스 조회 중… (최대 {cfg.bus_scan_timeout_s:g}s)")
+        found = list_visa_resources(cfg.visa_library,
+                                    timeout_s=cfg.bus_scan_timeout_s)
+        self.log.emit(f"  보이는 자원: {found or '(없음)'}")
+
+        if cfg.s300_address in found:
+            self.log.emit(f"  S300  {cfg.s300_address}  버스에 있음 (열지 않았습니다)")
+        else:
+            self.log.emit(f"  [경고] S300 {cfg.s300_address} 가 버스에 없습니다 — "
+                          f"전원·GPIB 케이블·주소를 확인하세요")
+        if cfg.b1500_address not in found:
+            return False, (f"B1500 이 버스에 없습니다 ({cfg.b1500_address}). "
+                           f"GPIB0 이 통째로 없으면 어댑터 USB 를 재연결하세요.")
+
+        # 진단용이라 짧게 연다. 측정용 타임아웃(300초)을 쓰면 막혔을 때
+        # 5분을 기다리게 된다.
+        self.log.emit("B1500 여는 중… (타임아웃 5s)")
+        self.log.emit("  여기서 막히면 본체에서 EasyEXPERT 가 돌고 있는 것입니다 "
+                      "— 종료하고 다시 시도하세요.")
+        b = B1500(cfg.b1500_address, cfg.visa_library, timeout_ms=5000).connect()
+        try:
+            self.log.emit(f"  IDN    {b.idn()}")
+            self.log.emit(f"  모듈   {b.modules()}")
+            b.outputs_off()
+            self.log.emit("  전 채널 출력 OFF (CL) 성공")
+        finally:
+            b.close()
+        self.log.emit(f"  roles  {dict(cfg.roles)}  ← 위 모듈 목록과 맞는지 확인하세요")
+        self.log.emit("B1500 본체에 FlexGUI 창이 떴을 것입니다 — 접속됐다는 표시입니다.")
+        return True, "장비 확인 통과 — 측정을 시작해도 됩니다"
 
 
 class MeasureWorker(QObject):
@@ -474,6 +549,13 @@ class MeasureWorker(QObject):
 
             self.log.emit(f"소요 시간 {self._hms(time.time() - t_start)}  ·  "
                           f"결과 {store.run_dir}")
+            # 이 장비는 버스 신호로 로컬 복귀가 안 된다(drivers/b1500.set_local
+            # 의 실측 기록). 그대로 두고 측정을 이어가도 되지만, 본체 앞에서
+            # EasyEXPERT 를 쓰려면 사람이 눌러야 한다는 것을 여기서 알려준다.
+            self.log.emit(
+                "B1500 은 원격(REM) 상태로 남습니다 — 본체에서 EasyEXPERT 를 "
+                "쓰시려면 FlexGUI 의 Tools > Go to Local & Close 를 누르세요. "
+                "측정을 계속하실 거면 그대로 두셔도 됩니다.")
             self.progress.emit("출력 OFF · 원점 복귀 중…")
             self.finished.emit(reason)
         finally:
@@ -711,6 +793,22 @@ def _label(text: str) -> QLabel:
     return l
 
 
+def _form_row(form: QFormLayout, text: str, widget: QWidget) -> tuple:
+    """QFormLayout 한 줄을 추가하고 (라벨, 위젯) 을 돌려준다.
+
+    측정 종류에 따라 줄을 통째로 숨겨야 하는데, QFormLayout 은 줄 단위
+    숨기기를 안 준다 — 라벨을 따로 안 잡아두면 위젯만 사라지고 라벨이 남는다.
+    """
+    lab = _label(text)
+    form.addRow(lab, widget)
+    return lab, widget
+
+
+def _show_row(row: tuple, on: bool) -> None:
+    for w in row:
+        w.setVisible(on)
+
+
 class StatusPill(QLabel):
     """헤더 오른쪽 상태 표시. 색으로 상태를 먼저 읽히게 한다."""
 
@@ -744,11 +842,14 @@ class MainWindow(QMainWindow):
         self.resize(1420, 940)
         self.thread: Optional[QThread] = None
         self.worker: Optional[MeasureWorker] = None
+        self.chk_thread: Optional[QThread] = None      # 장비 확인은 별도 스레드
+        self.chk_worker: Optional[CheckWorker] = None
         self._sites = []
         self._seed = None
         self._bounds = None
         self._filling = False        # 표를 채우는 동안 itemChanged 를 무시
         self._run_dir = ""           # 마지막 실행의 결과 폴더
+        self._closing = False        # 정리가 끝나면 자동으로 닫아야 하는가
 
         split = QSplitter(Qt.Horizontal)
         split.addWidget(self._build_left())
@@ -779,9 +880,11 @@ class MainWindow(QMainWindow):
             self.pill.set_state("err", "모듈 없음")
             self.btn_run.setEnabled(False)
             self.btn_dry.setEnabled(False)
+            self.btn_check.setEnabled(False)
         else:
             self.statusBar().showMessage("준비됨 — 먼저 [검증만] 으로 조건을 확인하세요.")
             self._load_settings()
+            self._on_kind_changed()      # 종류에 맞게 칸을 보이고 숨긴다
             self._reload_stack()
             self._reload_sites()
 
@@ -872,8 +975,23 @@ class MainWindow(QMainWindow):
 
         # 3 · 측정 조건
         c3, b3 = _card("측정 조건", "3")
+
+        # 무엇을 재는가. 이게 아래 모든 칸의 뜻을 바꾼다.
+        self.rb_tr = QPushButton("transfer  (Id–Vg)")
+        self.rb_out = QPushButton("output  (Id–Vd)")
+        self.rb_tr.setObjectName("segLeft")
+        self.rb_out.setObjectName("segRight")
+        for bt in (self.rb_tr, self.rb_out):
+            bt.setCheckable(True)
+        self.rb_tr.setChecked(True)
+        self._seg_kind = QButtonGroup(self); self._seg_kind.setExclusive(True)
+        self._seg_kind.addButton(self.rb_tr); self._seg_kind.addButton(self.rb_out)
+        seg = QHBoxLayout(); seg.setSpacing(0)
+        seg.addWidget(self.rb_tr, 1); seg.addWidget(self.rb_out, 1)
+        b3.addLayout(seg)
+
         b3.addWidget(_label("측정 목적 — 시드 범위와 수렴 판단이 여기서 갈린다"))
-        self.ed_obj = QPlainTextEdit(DEFAULT_OBJECTIVE)
+        self.ed_obj = QPlainTextEdit(OBJECTIVE["transfer"])
         self.ed_obj.setFixedHeight(66)
         b3.addWidget(self.ed_obj)
 
@@ -882,15 +1000,24 @@ class MainWindow(QMainWindow):
         # 실제로 나가는 값이 달라진다.
         fm = QFormLayout(); fm.setContentsMargins(0, 2, 0, 2)
         fm.setSpacing(7); fm.setLabelAlignment(Qt.AlignLeft)
-        self.cb_gate = QComboBox(); self.cb_gate.addItems(["BG", "TG"])
-        fm.addRow(_label("sweep 게이트"), self.cb_gate)
+        self.cb_gate = QComboBox()
+        # 배선된 단자만 고를 수 있게 한다. config.roles 에 없는 단자를 plan 이
+        # 건드리면 executor 가 막는데(지금 셋업은 SMU 3개라 TG 가 없다), 고를
+        # 수 있게 두면 검증에서야 알게 된다.
+        wired = [t for t in ("BG", "TG") if t in DEFAULT.roles] or ["BG"]
+        self.cb_gate.addItems(wired)
+        if len(wired) == 1:
+            self.cb_gate.setToolTip(
+                f"이 셋업에 배선된 게이트는 {wired[0]} 뿐이다 "
+                f"(config.roles = {dict(DEFAULT.roles)}).")
+        fm.addRow(_label("게이트"), self.cb_gate)
         self.sp_vd = QDoubleSpinBox()
         self.sp_vd.setRange(-200, 200); self.sp_vd.setDecimals(3)
         self.sp_vd.setSingleStep(0.1); self.sp_vd.setValue(0.1)
         self.sp_vd.setSuffix(" V"); self.sp_vd.setFixedWidth(96)
         self.sp_vd.setToolTip("드레인 전압. 선형영역 이동도 공식이 성립하려면\n"
                               "Vd ≪ Vg − Vth 여야 한다 (관례값 0.1 V).")
-        fm.addRow(_label("드레인 전압 V_D"), self.sp_vd)
+        self.row_vd = _form_row(fm, "드레인 전압 V_D", self.sp_vd)
         self.cb_dir = QComboBox()
         self.cb_dir.addItems(["에이전트가 정함", "single (편도)", "double (왕복)"])
         self.cb_dir.setToolTip("히스테리시스를 얻으려면 왕복(double)이어야 한다.\n"
@@ -924,7 +1051,7 @@ class MainWindow(QMainWindow):
             sp.setSuffix(" V"); sp.setFixedWidth(86); sp.setDecimals(2)
         hb.addWidget(self.sp_start); hb.addWidget(_label("→")); hb.addWidget(self.sp_stop); hb.addStretch(1)
         wrap = QWidget(); wrap.setLayout(hb)
-        fm.addRow(_label("전압 범위"), wrap)
+        self.row_span = _form_row(fm, "게이트 전압 범위", wrap)
         hb = QHBoxLayout(); hb.setSpacing(8)
         self.sp_points = QSpinBox(); self.sp_points.setRange(2, 4000); self.sp_points.setValue(115)
         self.sp_points.setFixedWidth(86)
@@ -933,14 +1060,36 @@ class MainWindow(QMainWindow):
                                 "SS 가 부풀려진 채로 그럴듯하게 나온다.")
         hb.addWidget(self.sp_points); hb.addWidget(self.lb_step); hb.addStretch(1)
         wrap = QWidget(); wrap.setLayout(hb)
-        fm.addRow(_label("점 수"), wrap)
+        self.row_points = _form_row(fm, "점 수", wrap)
+
+        # output 전용 — 게이트를 스텝으로 세우고 그 스텝마다 Vd 를 훑는다.
+        hb = QHBoxLayout(); hb.setSpacing(6)
+        self.sp_g0 = QDoubleSpinBox(); self.sp_g0.setRange(-200, 200); self.sp_g0.setValue(2.0)
+        self.sp_g1 = QDoubleSpinBox(); self.sp_g1.setRange(-200, 200); self.sp_g1.setValue(18.0)
+        for sp in (self.sp_g0, self.sp_g1):
+            sp.setSuffix(" V"); sp.setFixedWidth(86); sp.setDecimals(2)
+        hb.addWidget(self.sp_g0); hb.addWidget(_label("→")); hb.addWidget(self.sp_g1)
+        hb.addStretch(1)
+        wrap = QWidget(); wrap.setLayout(hb)
+        self.row_gspan = _form_row(fm, "게이트 스텝 범위", wrap)
+        self.sp_gsteps = QSpinBox(); self.sp_gsteps.setRange(1, 50); self.sp_gsteps.setValue(5)
+        self.sp_gsteps.setFixedWidth(86)
+        self.sp_gsteps.setToolTip(
+            "곡선 개수. 스텝마다 게이트를 그 전압에 붙들고 Vd 를 훑으므로\n"
+            "스텝이 늘수록 소자에 쌓이는 스트레스도 늘어난다.\n"
+            "turn-on 아래 스텝은 바닥에 붙어 정보가 없다.")
+        self.row_gsteps = _form_row(fm, "게이트 스텝 수", self.sp_gsteps)
+
         bt_fill = QPushButton("자동 계산값 가져오기")
-        bt_fill.setToolTip("지금 스택·게이트·V_D 로 계산한 기준안을 위 칸에 채운다.\n"
+        bt_fill.setToolTip("지금 스택·게이트로 계산한 기준안을 위 칸에 채운다.\n"
                            "덮어쓰기는 이 버튼을 누를 때만 일어난다.")
         bt_fill.clicked.connect(self._fill_manual_from_auto)
         fm.addRow("", bt_fill)
         b3.addWidget(self.box_manual)
         self.box_manual.setEnabled(False)
+        for wdg in (self.sp_g0, self.sp_g1, self.sp_gsteps):
+            wdg.valueChanged.connect(lambda _: self._rebuild_seed())
+        self.rb_out.toggled.connect(lambda _: self._on_kind_changed())
         self.rb_manual.toggled.connect(self.box_manual.setEnabled)
         self.rb_manual.toggled.connect(lambda _: self._on_mode_changed())
         for wdg in (self.sp_start, self.sp_stop, self.sp_points, self.sp_vd):
@@ -1019,11 +1168,8 @@ class MainWindow(QMainWindow):
         bP.addWidget(self.canvas)
         v.addWidget(cP, 5)
 
-        cR, bR = _card("결과", "", "소자 스펙 시트 다섯 항목")
+        cR, bR = _card("결과", "", "측정 종류에 따라 열이 바뀐다")
         self.tb_res = QTableWidget(0, 8)
-        self.tb_res.setHorizontalHeaderLabels(
-            ["소자", "상태", "Vth [V]", "SS [V/dec]", "decades",
-             "µ [cm²/Vs]", "ΔVth [V]", "반복"])
         self.tb_res.verticalHeader().setVisible(False)
         self.tb_res.setAlternatingRowColors(True)
         self.tb_res.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -1047,13 +1193,20 @@ class MainWindow(QMainWindow):
         h = QHBoxLayout(f)
         h.setContentsMargins(14, 10, 14, 10)
         h.setSpacing(10)
+        self.btn_check = QPushButton("장비 확인")
+        self.btn_check.setToolTip(
+            "GPIB 버스와 B1500 통신만 확인한다. 측정도 이동도 하지 않는다.\n"
+            "프로버는 버스에 보이는지만 보고 열지 않는다.")
+        self.btn_check.clicked.connect(self._on_check)
+        h.addWidget(self.btn_check)
         self.btn_dry = QPushButton("검증만  ·  장비 안 엶")
         self.btn_dry.clicked.connect(self._on_dry)
         h.addWidget(self.btn_dry)
         self.btn_open = QPushButton("결과 폴더")
         self.btn_open.clicked.connect(self._open_results)
         h.addWidget(self.btn_open)
-        note = QLabel("실행 전 Nucleus 에서  척 로드 → Alignment → Set Contact → 첫 소자 접촉")
+        note = QLabel("실행 전 · B1500 EasyEXPERT 종료 · Nucleus 에서 척 로드 → "
+                      "Alignment → Set Contact → 첫 소자 접촉")
         note.setObjectName("cardHint")
         note.setMinimumWidth(0)
         note.setTextInteractionFlags(Qt.NoTextInteraction)
@@ -1159,18 +1312,22 @@ class MainWindow(QMainWindow):
         """스택에서 계산한 기준안을 직접 입력 칸에 채운다.
 
         UI 가 값을 '보정'하는 게 아니라 seed.py 가 계산한 그 값을 그대로
-        옮겨 적는 것이다. 사람이 버튼을 누를 때만 일어난다.
+        옮겨 적는 것이다. 사람이 버튼을 누를 때(또는 측정 종류를 바꿀 때)만.
         """
         try:
-            auto = seed_transfer(self.cb_stack.currentText(),
-                                 gate=self.cb_gate.currentText(),
-                                 vd=self.sp_vd.value())
+            auto = self._auto_seed()
         except Exception as e:
-            QMessageBox.warning(self, "자동 계산", f"{type(e).__name__}: {e}")
+            self._seed = None
+            self.txt_seed.setPlainText(f"{type(e).__name__}: {e}")
+            self._update_step_label()
             return
-        for wdg, val in ((self.sp_start, auto.var1.start),
-                         (self.sp_stop, auto.var1.stop),
-                         (self.sp_points, auto.var1.n_steps)):
+        vals = [(self.sp_start, auto.var1.start),
+                (self.sp_stop, auto.var1.stop),
+                (self.sp_points, auto.var1.n_steps)]
+        if auto.var2 is not None:
+            vals += [(self.sp_g0, auto.var2.start), (self.sp_g1, auto.var2.stop),
+                     (self.sp_gsteps, auto.var2.n_steps)]
+        for wdg, val in vals:
             wdg.blockSignals(True)
             wdg.setValue(val)
             wdg.blockSignals(False)
@@ -1181,21 +1338,39 @@ class MainWindow(QMainWindow):
         return "single" if d.startswith("single") else \
                "double" if d.startswith("double") else None
 
+    def _kind(self) -> str:
+        return "output" if self.rb_out.isChecked() else "transfer"
+
+    def _auto_seed(self):
+        """스택에서 계산한 기준안. 측정 종류에 따라 다른 함수가 만든다."""
+        stack, gate = self.cb_stack.currentText(), self.cb_gate.currentText()
+        if self._kind() == "output":
+            return seed_output(stack, gate=gate)
+        return seed_transfer(stack, gate=gate, vd=self.sp_vd.value())
+
     def _rebuild_seed(self):
         if IMPORT_ERROR:
             return
         try:
-            seed = seed_transfer(self.cb_stack.currentText(),
-                                 gate=self.cb_gate.currentText(),
-                                 vd=self.sp_vd.value())
+            seed = self._auto_seed()
             if self.rb_manual.isChecked():
                 kw = dict(start=self.sp_start.value(), stop=self.sp_stop.value(),
                           points=self.sp_points.value())
                 if self._direction():
                     kw["direction"] = self._direction()
                 # IVPlan 은 frozen dataclass 라 속성 대입이 안 된다.
-                seed = _dc_replace(with_axis(seed, **kw),
-                                   note="UI 에서 직접 입력한 조건")
+                seed = with_axis(seed, **kw)
+                if self._kind() == "output" and seed.var2 is not None:
+                    # 게이트 스텝(var2). constants 의 게이트 값도 같이 옮긴다 —
+                    # var2 시작값과 다르면 validate 가 경고한다(실제로는 스텝
+                    # 값이 덮어쓰므로 무시되지만, 화면과 기록이 어긋난다).
+                    g0, g1 = self.sp_g0.value(), self.sp_g1.value()
+                    v2 = _dc_replace(seed.var2, start=g0, stop=g1,
+                                     points=self.sp_gsteps.value())
+                    consts = dict(seed.constants)
+                    consts[v2.terminal] = g0
+                    seed = _dc_replace(seed, var2=v2, constants=consts)
+                seed = _dc_replace(seed, note="UI 에서 직접 입력한 조건")
             elif self._direction():
                 # 자동 계산이어도 사람이 못 박은 방향은 즉시 화면에 반영한다.
                 # (session 도 force_direction 으로 같은 것을 강제한다)
@@ -1206,6 +1381,41 @@ class MainWindow(QMainWindow):
             self._seed = None
             self.txt_seed.setPlainText(f"{type(e).__name__}: {e}")
         self._update_step_label()
+
+    def _on_kind_changed(self):
+        """측정 종류가 바뀌면 화면의 뜻이 통째로 바뀐다.
+
+        output 은 **에이전트 경로가 없다.** Vd 범위는 포화 진입 여부가 정하는
+        것이라 사람이 정하고(seed_output 의 주석), HeuristicPolicy 도 output 을
+        받으면 곧장 converged 로 끝낸다. 프롬프트(agent/prompt.py)도 transfer
+        기준으로 쓰여 있다. 그래서 고정 조건으로 묶는다 — 없는 판단을 있는 척
+        하는 것보다 낫고, 덤으로 API 호출이 0 이 된다.
+        """
+        out = self._kind() == "output"
+        _show_row(self.row_vd, not out)
+        _show_row(self.row_gspan, out)
+        _show_row(self.row_gsteps, out)
+        self.row_span[0].setText("드레인 전압 V_D 범위" if out else "게이트 전압 범위")
+        self.lb_step.setVisible(not out)
+
+        if out:
+            self.ck_fixed.setChecked(True)
+        self.ck_fixed.setEnabled(not out)
+        self.ck_fixed.setToolTip(
+            "output(Id–Vd)은 에이전트가 정할 것이 없다 — Vd 범위는 포화 진입\n"
+            "여부가 정하고, 그건 사람이 판단한다. 그래서 고정 조건뿐이다."
+            if out else
+            "켜면 에이전트를 한 번도 부르지 않는다 — API 과금이 없고, 화면에\n"
+            "적힌 조건이 그대로 측정에 들어간다.\n"
+            "끄면 앞의 몇 소자로 조건을 탐색한 뒤 확정된 조건을 나머지에 적용한다.")
+
+        # 목적 문장은 사람이 고친 게 아니면 종류에 맞춰 갈아 끼운다.
+        cur = self.ed_obj.toPlainText().strip()
+        if cur in ("", OBJECTIVE["transfer"], OBJECTIVE["output"]):
+            self.ed_obj.setPlainText(OBJECTIVE[self._kind()])
+
+        self._fill_manual_from_auto()      # 칸의 뜻이 바뀌었으니 값도 갈아준다
+        self._set_result_columns()
 
     def _update_step_label(self):
         """스텝 = 범위 ÷ (점 수 − 1). 산술일 뿐 판단이 아니다."""
@@ -1272,6 +1482,40 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "폴더 열기", f"{target}\n\n{type(e).__name__}: {e}")
 
+    def _on_check(self):
+        """장비 확인. 측정 경로와 스레드를 따로 쓴다 — 서로 끼어들면 안 된다."""
+        if self.thread is not None or self.chk_thread is not None:
+            return
+        self.txt_log.clear()
+        self._log("=== 장비 확인 — 측정도 이동도 하지 않습니다 ===")
+        self.pill.set_state("idle", "확인 중")
+        self.statusBar().showMessage("장비 확인 중…")
+        self.btn_check.setEnabled(False)
+        self.btn_run.setEnabled(False)
+        self.btn_dry.setEnabled(False)
+
+        self.chk_thread = QThread(self)
+        self.chk_worker = CheckWorker()
+        self.chk_worker.moveToThread(self.chk_thread)
+        self.chk_thread.started.connect(self.chk_worker.run)
+        self.chk_worker.log.connect(self._log)
+        self.chk_worker.done.connect(self._on_check_done)
+        self.chk_thread.start()
+
+    @Slot(bool, str)
+    def _on_check_done(self, ok: bool, msg: str):
+        self._log(f"\n=== {'통과' if ok else '실패'} — {msg} ===")
+        self.pill.set_state("ok" if ok else "err", "확인 통과" if ok else "확인 실패")
+        self.statusBar().showMessage(msg)
+        if self.chk_thread:
+            self.chk_thread.quit()
+            self.chk_thread.wait(3000)
+        self.chk_thread = None
+        self.chk_worker = None
+        self.btn_check.setEnabled(True)
+        self.btn_run.setEnabled(True)
+        self.btn_dry.setEnabled(True)
+
     def _on_dry(self):
         self.txt_log.clear()
         self.pill.set_state("idle", "검증 중")
@@ -1294,6 +1538,10 @@ class MainWindow(QMainWindow):
             self.pill.set_state("err", "경계 위반")
 
     def _on_run(self):
+        if self.chk_thread is not None:
+            QMessageBox.information(self, "장비 확인 중",
+                                    "장비 확인이 끝난 뒤에 시작하세요.")
+            return
         if not self._validate():
             return
         sel = self._selected_sites()
@@ -1307,7 +1555,11 @@ class MainWindow(QMainWindow):
         if QMessageBox.question(
                 self, "측정 시작",
                 summary + "\n"
-                "Nucleus UI 에서 아래를 끝내 두셨습니까?\n\n"
+                "아래를 끝내 두셨습니까?\n\n"
+                "B1500A 본체\n"
+                "  0. EasyEXPERT 종료 (Start EasyEXPERT 화면으로)\n"
+                "     띄워둔 채로는 외부 GPIB 제어가 안 들어갑니다.\n\n"
+                "Nucleus UI\n"
                 "  1. 척 로드 / 진공 ON\n"
                 "  2. Alignment (2-point align)\n"
                 "  3. Tipping / Set Contact\n"
@@ -1316,7 +1568,7 @@ class MainWindow(QMainWindow):
             return
 
         self.txt_log.clear()
-        self.tb_res.setRowCount(0)
+        self._set_result_columns()
         self._clear_plot()
         self.canvas.draw_idle()
         fixed = self.ck_fixed.isChecked()
@@ -1352,6 +1604,7 @@ class MainWindow(QMainWindow):
 
         self.btn_run.setEnabled(False)
         self.btn_dry.setEnabled(False)
+        self.btn_check.setEnabled(False)
         self.btn_stop.setEnabled(True)
         self.pill.set_state("run", "측정 중")
 
@@ -1361,20 +1614,46 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("중단 요청 — 지금 소자를 끝내고 멈춥니다…")
         self._abort_requested.emit()
 
+    # 측정 종류마다 볼 값이 다르다. transfer 는 스펙 시트 다섯 항목,
+    # output 은 접촉저항·포화·λ (SPICE 피팅에 들어가는 값들).
+    _COLS = {
+        "transfer": ["소자", "상태", "Vth [V]", "SS [V/dec]", "decades",
+                     "µ [cm²/Vs]", "ΔVth [V]", "반복"],
+        "output": ["소자", "상태", "Id@Vd,max [A]", "포화비", "R_on [Ω]",
+                   "λ [1/V]", "r_out [Ω]", "반복"],
+    }
+
+    def _set_result_columns(self, kind: Optional[str] = None):
+        self.tb_res.setRowCount(0)
+        self.tb_res.setHorizontalHeaderLabels(self._COLS[kind or self._kind()])
+
+    @staticmethod
+    def _result_row(r, kind: str) -> list:
+        m = r.metrics or {}
+        if kind == "output":
+            return [r.site.name, r.status,
+                    MainWindow._fmt(m.get("id_at_vdmax")),
+                    MainWindow._fmt(m.get("saturation_ratio")),
+                    MainWindow._fmt(m.get("r_on_ohm")),
+                    MainWindow._fmt(m.get("lambda_per_V")),
+                    MainWindow._fmt(m.get("r_out_ohm")), str(r.iterations)]
+        mu = MainWindow._fmt(m.get("mobility_cm2_Vs"))
+        if mu != "—" and m.get("mobility_is_lower_bound"):
+            # gm 꼭대기를 창 안에서 못 넘겼으면 이동도는 하한이다.
+            # 값만 적어 두면 나중에 그냥 이동도로 읽힌다.
+            mu = "≥ " + mu
+        return [r.site.name, r.status,
+                MainWindow._fmt(m.get("vth_cc")), MainWindow._fmt(m.get("ss")),
+                MainWindow._fmt(m.get("decades")), mu,
+                MainWindow._fmt(m.get("hysteresis_V")), str(r.iterations)]
+
     @Slot(object, str)
     def _on_site_done(self, r, csv_path: str):
         m = r.metrics or {}
         row = self.tb_res.rowCount()
         self.tb_res.insertRow(row)
-        mu = self._fmt(m.get("mobility_cm2_Vs"))
-        if mu != "—" and m.get("mobility_is_lower_bound"):
-            # gm 꼭대기를 창 안에서 못 넘겼으면 이동도는 하한이다.
-            # 값만 적어 두면 나중에 그냥 이동도로 읽힌다.
-            mu = "≥ " + mu
-        vals = [r.site.name, r.status,
-                self._fmt(m.get("vth_cc")), self._fmt(m.get("ss")),
-                self._fmt(m.get("decades")), mu,
-                self._fmt(m.get("hysteresis_V")), str(r.iterations)]
+        kind = m.get("kind") or self._kind()
+        vals = self._result_row(r, kind)
         for j, v in enumerate(vals):
             it = QTableWidgetItem(v)
             if j >= 2:
@@ -1386,7 +1665,7 @@ class MainWindow(QMainWindow):
         self.tb_res.scrollToBottom()
         if csv_path:
             term = r.final_plan.var1.terminal if r.final_plan is not None else None
-            self._plot(csv_path, f"{r.site.area}/{r.site.name}", m, term)
+            self._plot(csv_path, f"{r.site.area}/{r.site.name}", m, term, kind)
 
     @staticmethod
     def _status_color(status: str) -> str:
@@ -1438,7 +1717,11 @@ class MainWindow(QMainWindow):
         self.worker = None
         self.btn_run.setEnabled(True)
         self.btn_dry.setEnabled(True)
+        self.btn_check.setEnabled(True)
         self.btn_stop.setEnabled(False)
+        if self._closing:
+            # 닫으려다 정리를 기다리던 참이었다. 이제 안전하다.
+            self.close()
 
     # -- 표시 --------------------------------------------------------------
     @staticmethod
@@ -1450,8 +1733,10 @@ class MainWindow(QMainWindow):
         except (TypeError, ValueError):
             return str(v)
 
-    def _style_axes(self):
-        self.ax.set_yscale("log")
+    def _style_axes(self, log: bool = True):
+        # output 은 선형이다. 포화 무릎과 선형영역 기울기(=접촉저항)가
+        # 로그 축에서는 안 보인다 — 그게 output 을 재는 이유인데.
+        self.ax.set_yscale("log" if log else "linear")
         self.ax.tick_params(top=False, right=False, length=3)
         self.ax.xaxis.set_tick_params(direction="out")
         self.ax.yaxis.set_tick_params(direction="in")
@@ -1461,16 +1746,17 @@ class MainWindow(QMainWindow):
             self.ax.spines[side].set_color(C["line"])
 
     def _clear_plot(self):
+        out = self._kind() == "output"
         self.ax.clear()
-        self.ax.set_xlabel("Gate voltage (V)")
-        self.ax.set_ylabel("|I$_D$| (A)")
-        self._style_axes()
+        self.ax.set_xlabel("Drain voltage (V)" if out else "Gate voltage (V)")
+        self.ax.set_ylabel("I$_D$ (A)" if out else "|I$_D$| (A)")
+        self._style_axes(log=not out)
         self.ax.text(0.5, 0.5, "측정을 시작하면 여기에 곡선이 나타납니다",
                      ha="center", va="center", transform=self.ax.transAxes,
                      color=C["faint"], fontsize=9)
 
     def _plot(self, csv_path: str, title: str, metrics: dict,
-              sweep_terminal: Optional[str] = None):
+              sweep_terminal: Optional[str] = None, kind: str = "transfer"):
         try:
             import pandas as pd
             df = pd.read_csv(csv_path)
@@ -1478,33 +1764,62 @@ class MainWindow(QMainWindow):
             # 채워져 나오므로(frame.fill_constants), 이름만 보고 고르면
             # TG sweep 인데 V_BG(=0 V 고정)를 x 로 잡아 곡선이 세로선이 된다.
             cands = ([f"V_{sweep_terminal}"] if sweep_terminal else []) \
-                + ["V_BG", "V_TG", "V_D"]
+                + (["V_D"] if kind == "output" else ["V_BG", "V_TG", "V_D"])
             xcol = next((c for c in cands if c in df.columns), None)
             if xcol is None or "I_D" not in df.columns:
                 return
-            gcol = f"I_{xcol[2:]}"          # 스윕한 게이트의 전류
             self.ax.clear()
-            self.ax.plot(df[xcol], df["I_D"].abs() + 1e-15,
-                         lw=1.3, color=C["accent"], label="$I_D$")
-            if gcol in df.columns and gcol != "I_D":
-                self.ax.plot(df[xcol], df[gcol].abs() + 1e-15, lw=0.8,
-                             ls="--", color=C["faint"], label="$I_G$")
-            vth = metrics.get("vth_cc")
-            if vth is not None:
-                self.ax.axvline(float(vth), color=C["warn"], ls=":", lw=1.1)
-                self.ax.annotate(f"$V_{{th}}$ = {float(vth):.2f} V",
-                                 xy=(float(vth), 0.04), xycoords=("data", "axes fraction"),
-                                 color=C["warn"], fontsize=8.5,
-                                 ha="left", va="bottom", xytext=(4, 0),
-                                 textcoords="offset points")
-            self.ax.legend(fontsize=8, labelcolor=C["dim"], loc="upper left")
+
+            if kind == "output":
+                self._plot_output(df, xcol)
+            else:
+                self._plot_transfer(df, xcol, metrics)
+
             self.ax.set_xlabel(f"{xcol} (V)")
-            self.ax.set_ylabel("|I$_D$| (A)")
+            self.ax.set_ylabel("I$_D$ (A)" if kind == "output" else "|I$_D$| (A)")
             self.ax.set_title(title, color=C["ink"], loc="left", pad=8)
-            self._style_axes()
+            self._style_axes(log=(kind != "output"))
             self.canvas.draw_idle()
         except Exception as e:
             self._log(f"[그림 실패] {type(e).__name__}: {e}")
+
+    def _plot_transfer(self, df, xcol: str, metrics: dict):
+        gcol = f"I_{xcol[2:]}"              # 스윕한 게이트의 전류
+        self.ax.plot(df[xcol], df["I_D"].abs() + 1e-15,
+                     lw=1.3, color=C["accent"], label="$I_D$")
+        if gcol in df.columns and gcol != "I_D":
+            self.ax.plot(df[xcol], df[gcol].abs() + 1e-15, lw=0.8,
+                         ls="--", color=C["faint"], label="$I_G$")
+        vth = metrics.get("vth_cc")
+        if vth is not None:
+            self.ax.axvline(float(vth), color=C["warn"], ls=":", lw=1.1)
+            self.ax.annotate(f"$V_{{th}}$ = {float(vth):.2f} V",
+                             xy=(float(vth), 0.04), xycoords=("data", "axes fraction"),
+                             color=C["warn"], fontsize=8.5,
+                             ha="left", va="bottom", xytext=(4, 0),
+                             textcoords="offset points")
+        self.ax.legend(fontsize=8, labelcolor=C["dim"], loc="upper left")
+
+    def _plot_output(self, df, xcol: str):
+        """게이트 스텝마다 한 곡선. 스텝을 겹쳐 그리지 않으면 곡선이
+        지그재그로 이어져 포화 무릎이 사라진다."""
+        import numpy as np
+        if "step" in df.columns and df["step"].nunique() > 1:
+            steps = sorted(df["step"].unique())
+        else:
+            steps = [None]
+        # 스텝이 높을수록(=게이트가 셀수록) 진하게. 순서가 눈에 보여야 한다.
+        shades = np.linspace(0.35, 1.0, len(steps))
+        base = tuple(int(C["accent"].lstrip("#")[i:i + 2], 16) / 255
+                     for i in (0, 2, 4))
+        for s, k in zip(steps, shades):
+            sub = df if s is None else df[df["step"] == s]
+            self.ax.plot(sub[xcol], sub["I_D"], lw=1.2,
+                         color=tuple(c * k + (1 - k) * 0.35 for c in base),
+                         label=None if s is None else f"$V_G$={float(s):g} V")
+        if steps[0] is not None:
+            self.ax.legend(fontsize=7.5, labelcolor=C["dim"], loc="upper left",
+                           ncol=2 if len(steps) > 4 else 1)
 
     @Slot(str)
     def _log(self, line: str):
@@ -1516,6 +1831,8 @@ class MainWindow(QMainWindow):
     # 장비를 여는 값(원점 등록)은 일부러 저장하지 않는다 — 그건 그날의
     # 상태에 달린 것이고, 기억해 두면 의도치 않게 켜진 채로 실행된다.
     _SETTINGS = [
+        ("kind", lambda w: w._kind(),
+         lambda w, v: (w.rb_out if v == "output" else w.rb_tr).setChecked(True)),
         ("stack", lambda w: w.cb_stack.currentText(),
          lambda w, v: w.cb_stack.setCurrentText(v)),
         ("coords", lambda w: w.ed_coords.text(), lambda w, v: w.ed_coords.setText(v)),
@@ -1532,6 +1849,10 @@ class MainWindow(QMainWindow):
         ("start", lambda w: w.sp_start.value(), lambda w, v: w.sp_start.setValue(float(v))),
         ("stop", lambda w: w.sp_stop.value(), lambda w, v: w.sp_stop.setValue(float(v))),
         ("points", lambda w: w.sp_points.value(), lambda w, v: w.sp_points.setValue(int(v))),
+        ("g0", lambda w: w.sp_g0.value(), lambda w, v: w.sp_g0.setValue(float(v))),
+        ("g1", lambda w: w.sp_g1.value(), lambda w, v: w.sp_g1.setValue(float(v))),
+        ("gsteps", lambda w: w.sp_gsteps.value(),
+         lambda w, v: w.sp_gsteps.setValue(int(v))),
         ("fixed", lambda w: w.ck_fixed.isChecked(),
          lambda w, v: w.ck_fixed.setChecked(_truthy(v))),
         ("policy", lambda w: w.cb_policy.currentIndex(),
@@ -1564,21 +1885,58 @@ class MainWindow(QMainWindow):
         s.setValue("ui/geometry", self.saveGeometry())
 
     def closeEvent(self, ev):
+        """측정 중이면 **정리가 끝날 때까지 창을 닫지 않는다.**
+
+        여기서 창을 닫으면 마지막 창이라 프로세스가 죽고, 워커의 finally
+        (ex.home → 출력 OFF → GTL → 세션 close)가 실행되지 않는다. 그러면
+        SMU 출력이 켜진 채 팁이 닿아 있고, VISA 세션도 남아 다음 실행이 막힌다.
+
+        예전에는 60초 기다렸다가 그냥 닫았는데, 스윕 하나가 그보다 길면
+        정확히 그 사고가 났다. 이제는 기다리지 않고 창을 열어둔 채 중단을
+        걸고, 정리가 끝나면 _teardown 이 다시 닫는다.
+        """
+        if self.chk_thread is not None and self.chk_thread.isRunning():
+            # 확인은 길어야 25초다. 그 사이에 프로세스가 죽으면 VISA 세션이
+            # 남으므로 잠깐 기다리게 한다.
+            QMessageBox.information(
+                self, "장비 확인 중",
+                "장비 확인이 돌고 있습니다. 끝난 뒤에 닫아 주세요.\n"
+                "(길어야 25초입니다)")
+            ev.ignore()
+            return
+
         if self.thread and self.thread.isRunning():
+            if self._closing:
+                # 두 번째 시도 — 정리가 안 끝나고 있다. 강제로 나갈지 묻는다.
+                if QMessageBox.warning(
+                        self, "정리 중",
+                        "장비 정리가 아직 안 끝났습니다.\n\n"
+                        "지금 강제로 닫으면 SMU 출력이 켜진 채 남고(팁이 소자에 "
+                        "닿아 있습니다) VISA 세션도 남아 다음 실행이 막힐 수 "
+                        "있습니다.\n\n그래도 닫으시겠습니까?",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No) != QMessageBox.Yes:
+                    ev.ignore()
+                    return
+                self._save_settings()
+                ev.accept()
+                return
+
             if QMessageBox.question(
                     self, "측정 중",
-                    "측정이 돌고 있습니다. 정말 닫으시겠습니까?\n"
-                    "장비가 어중간한 상태로 남을 수 있습니다.") != QMessageBox.Yes:
+                    "측정이 돌고 있습니다. 정말 닫으시겠습니까?\n\n"
+                    "지금 소자를 끝내고 팁을 원점으로 되돌린 뒤 "
+                    "자동으로 닫힙니다.") != QMessageBox.Yes:
                 ev.ignore()
                 return
+            self._closing = True
             self._abort_requested.emit()
-            # 그냥 wait() 하면 UI 스레드가 막혀 워커의 finished 가 처리되지 않고,
-            # 그래서 thread.quit() 이 영영 안 불린다. 이벤트를 돌리면서 기다린다.
-            deadline = time.time() + 60
-            while self.thread is not None and self.thread.isRunning() \
-                    and time.time() < deadline:
-                QApplication.processEvents()
-                self.thread.wait(50)
+            self.pill.set_state("idle", "정리 중")
+            self.statusBar().showMessage(
+                "중단 요청 — 지금 소자를 끝내고 장비를 정리한 뒤 자동으로 닫힙니다…")
+            ev.ignore()             # 정리가 끝나면 _teardown 이 다시 닫는다
+            return
+
         self._save_settings()
         ev.accept()
 

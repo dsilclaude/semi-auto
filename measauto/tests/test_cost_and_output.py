@@ -5,6 +5,8 @@
 
   · SMU 출력   측정이 끝났는데 전압이 남아 있으면 팁이 닿은 소자에 며칠씩
                DC 바이어스가 걸린다. 실제로 그랬다.
+  · 버스 조회  물린 버스에 VISA 호출을 던지면 드라이버 안에서 막힌다.
+               Ctrl+C 도 안 먹고 프로세스를 죽여도 안 풀린다(실측).
   · LLM 호출   탐색 소자 수가 상한이 아니면 소자 수만큼 호출이 늘어난다.
                16 소자에서 4회 → 32회로 늘었던 적이 있다.
   · 페이로드   원본 CSV 를 실으면 요청 하나가 30k 토큰이 된다(실측 105,479 자).
@@ -15,6 +17,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+import time
 
 import numpy as np
 import pandas as pd
@@ -22,7 +25,7 @@ import pandas as pd
 from ..agent.policy import HeuristicPolicy, Proposal
 from ..config import HardwareConfig
 from ..drivers.b1500 import B1500
-from ..executor import Executor, Site
+from ..executor import BusTimeout, Executor, Site, list_visa_resources
 from ..metrics import summarize, to_llm_payload
 from ..plan import transfer
 from ..replay import FakeExecutor, SimulatedDevice
@@ -35,9 +38,18 @@ from .fixtures import stack_with_limits
 # ---------------------------------------------------------------------------
 # 장비: 소자에 전압이 남지 않는다
 # ---------------------------------------------------------------------------
+class _Connection:
+    def __init__(self):
+        self.ren = []
+
+    def control_ren(self, mode):
+        self.ren.append(mode)
+
+
 class _Adapter:
     def __init__(self):
         self.closed = False
+        self.connection = _Connection()
 
     def close(self):
         self.closed = True
@@ -66,6 +78,42 @@ def test_close_turns_outputs_off_before_closing_the_session():
 
     assert inst.writes == ["CL"], f"CL 을 안 보냈다: {inst.writes}"
     assert inst.adapter.closed, "세션이 안 닫혔다"
+    assert b.inst is None
+
+
+def test_close_returns_the_mainframe_to_local():
+    """세션을 닫을 때 GTL 을 보내는가. 그리고 **CL 이 먼저인가.**
+
+    ⚠️ 이 검사는 '보내는지'만 본다. 실장비에서 **효과가 없다는 것**이
+    2026-09-10 에 확인됐다 — GTL 도, REN 을 내려도 FlexGUI 의 RMT 가 안
+    꺼진다. 사람이 본체에서 Tools > Go to Local & Close 를 눌러야 한다
+    (drivers/b1500.set_local 의 기록). 표준 버스 예의라 남겨둔 것뿐이니,
+    이 검사가 통과한다고 장비가 로컬로 돌아갔다는 뜻은 아니다.
+
+    순서는 진짜로 중요하다 — 출력을 내린(CL) 뒤에 보내야 한다.
+    """
+    inst = _Inst()
+    b = B1500("GPIB0::17::INSTR")
+    b.inst = inst
+    b.close()
+
+    assert inst.adapter.connection.ren == [6], \
+        f"GTL(VI_GPIB_REN_ADDRESS_GTL=6)을 안 보냈다: {inst.adapter.connection.ren}"
+    assert inst.writes == ["CL"], "CL 이 GTL 보다 먼저여야 한다"
+
+
+def test_local_failure_does_not_stop_the_teardown():
+    """어댑터가 REN 제어를 안 받아도 세션은 닫혀야 한다."""
+    inst = _Inst()
+
+    def _boom(mode):
+        raise RuntimeError("이 어댑터는 REN 제어를 지원하지 않는다")
+
+    inst.adapter.connection.control_ren = _boom
+    b = B1500("GPIB0::17::INSTR")
+    b.inst = inst
+    b.close()
+    assert inst.adapter.closed, "GTL 이 실패했다고 세션까지 안 닫혔다"
     assert b.inst is None
 
 
@@ -125,6 +173,115 @@ def test_home_drops_the_voltage_before_it_moves():
 
     assert b.off == 1, "출력을 안 내렸다"
     assert calls.index("outputs_off") < calls.index("separate"), calls
+
+
+# ---------------------------------------------------------------------------
+# 버스: 물려 있어도 매달리지 않는다
+# ---------------------------------------------------------------------------
+class _FakePyvisa:
+    """pyvisa 를 가로채는 문맥관리자. list_resources 의 행동을 바꿔 끼운다."""
+
+    def __init__(self, behaviour):
+        self.behaviour = behaviour
+        self._saved = None
+
+    def __enter__(self):
+        import sys
+        import types
+        self._saved = sys.modules.get("pyvisa")
+        mod = types.ModuleType("pyvisa")
+        beh = self.behaviour
+
+        class _RM:
+            def __init__(self, *a, **k):
+                if beh == "boom":
+                    raise OSError("nivisa64.dll 없음")
+
+            def list_resources(self):
+                if beh == "hang":
+                    time.sleep(3600)
+                if beh == "empty":
+                    return ()
+                return ("GPIB0::17::INSTR", "GPIB0::28::INSTR")
+
+        mod.ResourceManager = _RM
+        sys.modules["pyvisa"] = mod
+        return self
+
+    def __exit__(self, *exc):
+        import sys
+        if self._saved is None:
+            sys.modules.pop("pyvisa", None)
+        else:
+            sys.modules["pyvisa"] = self._saved
+        return False
+
+
+def test_a_wedged_bus_gives_up_instead_of_hanging():
+    """물린 버스에서는 **매달리기 전에 포기**해야 한다.
+
+    실측 2026-09-10: 진단 스크립트가 list_resources() 에서 막혔고, Ctrl+C 도
+    콘솔 닫기도 안 먹었으며, 강제 종료해도 커널 호출에서 못 빠져나와 좀비로
+    남았다. 어댑터 USB 를 재연결해야 풀렸다. 한 번 매달리면 손쓸 방법이
+    없으므로 시간 제한이 유일한 방어다.
+    """
+    with _FakePyvisa("hang"):
+        t0 = time.time()
+        try:
+            list_visa_resources("", timeout_s=0.5)
+        except BusTimeout as e:
+            assert "USB 를 뽑았다" in str(e), "무엇을 하면 되는지 안 알려준다"
+        else:
+            raise AssertionError("매달렸어야 하는데 값이 돌아왔다")
+        dt = time.time() - t0
+        assert dt < 3.0, f"{dt:.1f}s 나 붙들고 있었다"
+
+
+def test_measurement_path_also_gives_up():
+    """UI/CLI 가 타는 Executor.connect 도 같은 방어를 받는다.
+
+    여기가 안 막히면 측정 시작을 눌렀을 때 워커 스레드가 통째로 굳고,
+    중단 버튼도 소용이 없다(중단은 소자 사이에서 걸리는데 첫 소자에
+    들어가지도 못한다).
+    """
+    cfg = HardwareConfig(bus_scan_timeout_s=0.5)
+    with _FakePyvisa("hang"):
+        t0 = time.time()
+        try:
+            Executor(cfg).connect()
+        except BusTimeout:
+            pass
+        else:
+            raise AssertionError("connect 가 통과했다")
+        assert time.time() - t0 < 3.0
+
+
+def test_missing_instrument_still_says_what_to_do():
+    """버스는 멀쩡한데 장비가 없을 때의 안내가 그대로 남아 있는가."""
+    with _FakePyvisa("empty"):
+        try:
+            Executor(HardwareConfig()).connect()
+        except ConnectionError as e:
+            assert "GPIB 버스에서 장비를 못 찾았다" in str(e)
+            assert "팁은 접촉된 자리 그대로다" in str(e), "안전 상태를 안 알려준다"
+        else:
+            raise AssertionError("connect 가 통과했다")
+
+
+def test_visa_failure_is_not_reported_as_a_timeout():
+    """VISA 자체를 못 열면 그 원인이 그대로 와야 한다.
+
+    타임아웃으로 뭉뚱그리면 USB 를 재연결하러 가는데 실은 dll 이 없는 것이다.
+    """
+    with _FakePyvisa("boom"):
+        try:
+            list_visa_resources("", timeout_s=0.5)
+        except BusTimeout:
+            raise AssertionError("원래 원인이 타임아웃으로 가려졌다")
+        except ConnectionError as e:
+            assert "VISA 를 열 수 없다" in str(e)
+        else:
+            raise AssertionError("통과했다")
 
 
 # ---------------------------------------------------------------------------
@@ -244,7 +401,13 @@ def test_zero_calibration_sites_never_calls_the_agent():
 
 
 TESTS = [
+    test_a_wedged_bus_gives_up_instead_of_hanging,
+    test_measurement_path_also_gives_up,
+    test_missing_instrument_still_says_what_to_do,
+    test_visa_failure_is_not_reported_as_a_timeout,
     test_close_turns_outputs_off_before_closing_the_session,
+    test_close_returns_the_mainframe_to_local,
+    test_local_failure_does_not_stop_the_teardown,
     test_output_off_failure_does_not_stop_the_teardown,
     test_home_drops_the_voltage_before_it_moves,
     test_raw_csv_never_reaches_the_payload,

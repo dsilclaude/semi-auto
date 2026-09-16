@@ -38,6 +38,55 @@ class Site:
         return self.x == 0 and self.y == 0
 
 
+class BusTimeout(ConnectionError):
+    """VISA 자원 조회가 제한 시간 안에 안 끝났다 = 버스가 물려 있다."""
+
+
+def list_visa_resources(visa_library: str = "", timeout_s: float = 20.0) -> tuple:
+    """VISA 자원 목록. 정해진 시간 안에 안 오면 BusTimeout.
+
+    왜 스레드까지 쓰나: 버스가 물려 있으면(체인에 꺼진 장비가 물려 NDAC 을
+    잡고 있는 경우가 흔하다) 이 호출이 **드라이버 안에서** 막힌다. 그러면
+    Ctrl+C 가 안 먹고, 콘솔을 닫아도 안 죽고, 강제 종료해도 커널 호출에서
+    못 빠져나와 좀비로 남는다(실측 2026-09-10 — 어댑터 USB 를 재연결해야
+    풀렸다). 매달린 뒤에는 손쓸 방법이 없으므로 **매달리기 전에** 포기한다.
+
+    스레드는 daemon 이라 영영 안 끝나도 프로세스 종료를 막지 않는다.
+    """
+    import threading
+
+    box: Dict[str, object] = {}
+
+    def _work():
+        import pyvisa
+        try:
+            rm = (pyvisa.ResourceManager(visa_library) if visa_library
+                  else pyvisa.ResourceManager())
+            box["ok"] = tuple(rm.list_resources())
+        except Exception as e:                  # noqa: BLE001 - 그대로 전달한다
+            box["err"] = e
+
+    t = threading.Thread(target=_work, daemon=True, name="visa-list")
+    t.start()
+    t.join(timeout_s)
+
+    if t.is_alive():
+        raise BusTimeout(
+            f"VISA 자원 조회가 {timeout_s:g}초 안에 안 끝났다 — 버스가 물려 있다.\n"
+            "\n"
+            "  드라이버 호출 안에서 막힌 상태라 기다려도 풀리지 않는다.\n"
+            "  → NI GPIB-USB-HS 의 USB 를 뽑았다 5초 뒤 다시 꽂을 것.\n"
+            "    (장치관리자에 정상으로 보여도 그럴 수 있다)\n"
+            "  그래도 같으면 체인에 **꺼진 채 물려 있는 장비**를 찾을 것 —\n"
+            "  꺼진 장비가 핸드셰이크 라인을 잡으면 버스 전체가 죽는다.\n"
+            "\n"
+            "  팁은 접촉된 자리 그대로다 — 장비를 연 적이 없으므로 안전하다.")
+    if "err" in box:
+        e = box["err"]
+        raise ConnectionError(f"VISA 를 열 수 없다: {type(e).__name__}: {e}") from e
+    return box["ok"]                            # type: ignore[return-value]
+
+
 def load_sites(path, area: str = "default") -> List[Site]:
     """좌표 CSV/XLSX 읽기. 컬럼: Subsite Name, X Position, Y Position, Note."""
     p = Path(path)
@@ -150,13 +199,8 @@ class Executor:
         열면 pyvisa 스택 추적이 그대로 튀어나와 원인이 안 보인다. 여기서
         먼저 걸러 무엇을 하면 되는지 알려준다.
         """
-        import pyvisa
-        try:
-            rm = (pyvisa.ResourceManager(self.cfg.visa_library)
-                  if self.cfg.visa_library else pyvisa.ResourceManager())
-            found = rm.list_resources()
-        except Exception as e:
-            raise ConnectionError(f"VISA 를 열 수 없다: {type(e).__name__}: {e}") from e
+        found = list_visa_resources(self.cfg.visa_library,
+                                    timeout_s=self.cfg.bus_scan_timeout_s)
 
         want = {self.cfg.s300_address, self.cfg.b1500_address}
         missing = sorted(want - set(found))

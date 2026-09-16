@@ -136,12 +136,49 @@ class B1500:
         except Exception as e:
             print(f"[b1500] 출력 OFF 실패(확인 필요): {e}")
 
+    def set_local(self) -> None:
+        """GTL(Go To Local). ⚠️ **이 B1500A 에서는 효과가 없다 — 실측.**
+
+        프로그래밍 가이드 1-4/1-5: GPIB 명령을 받는 순간 Start EasyEXPERT
+        버튼이 작업표시줄로 내려가고 FlexGUI 창이 열린다. 그 창의 `RMT`
+        표시등이 원격 상태를 나타낸다.
+
+        2026-09-10 실측 (GPIB0::17, NI GPIB-USB-HS):
+
+          · control_ren(6)  VI_GPIB_REN_ADDRESS_GTL  → 에러 없음, RMT 그대로
+          · control_ren(0)  VI_GPIB_REN_DEASSERT     → 에러 없음, RMT 그대로
+
+        **버스 신호로는 이 장비를 로컬로 못 돌린다.** 사람이 본체에서
+        Tools > Go to Local & Close 를 눌러야 RMT 가 꺼지고 창이 닫힌다.
+        그러니 '측정이 끝나면 FlexGUI 가 사라진다'고 기대하면 안 된다.
+        남아 있는 것이 정상이고 **다음 실행에도 지장이 없다** — 어차피
+        접속하면 다시 원격 상태가 된다.
+
+        그런데도 남겨두는 이유는 하나뿐이다: GTL 은 표준 버스 예의라
+        보내는 것이 맞고, 비용이 없다. 이 장비가 안 따를 뿐이다.
+        **효과를 기대하고 여기에 뭘 더 넣지 말 것** — 위 두 줄이 이미
+        실측으로 안 된다고 나왔다.
+
+        출력을 내린(CL) **뒤에** 부를 것.
+        """
+        if self.inst is None:
+            return
+        try:
+            # VI_GPIB_REN_ADDRESS_GTL = 6 (주소지정 후 GTL 전송)
+            self.inst.adapter.connection.control_ren(6)
+        except Exception as e:                  # 어댑터가 REN 제어를 안 받을 수 있다
+            print(f"[b1500] GTL 실패(무시 가능): {e}")
+
     def close(self):
         try:
             if self.inst is not None:
                 # 세션만 닫으면 SMU 는 마지막 값을 계속 인가한다. 팁이 소자에
                 # 닿은 채로 끝나므로(executor.home) 출력을 내리고 나간다.
                 self.outputs_off()
+                # 그리고 본체를 로컬로 돌려준다 — 안 그러면 원격 상태로 잠긴 채
+                # 남아 본체 앞에서 조작이 안 된다. (FlexGUI 창은 그대로 남는다.
+                # 창 닫기는 원격으로 안 된다 — set_local 주석 참고)
+                self.set_local()
                 self.inst.adapter.close()
         except Exception as e:              # 세션 정리는 실패해도 진행
             print(f"[b1500] close 중 예외(무시 가능): {e}")

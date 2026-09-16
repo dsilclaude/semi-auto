@@ -49,6 +49,11 @@ class HardwareConfig:
     b1500_timeout_ms: int = 300000
     s300_timeout_ms: int = 30000
 
+    # 버스에 뭐가 있는지 훑는 데 이보다 오래 걸리면 버스가 물린 것으로 본다.
+    # 정상이면 1초 안에 끝난다. 이 값이 필요한 이유는 executor.list_visa_resources
+    # 의 주석에 있다 — 한 번 매달리면 프로세스를 죽여도 안 풀린다.
+    bus_scan_timeout_s: float = 20.0
+
     def role_of(self, channel: int) -> Optional[str]:
         for t, ch in self.roles.items():
             if ch == channel:
